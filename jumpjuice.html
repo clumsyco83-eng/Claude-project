@@ -113,6 +113,14 @@ canvas{display:block;touch-action:none}
 #boot .ring{width:34px;height:34px;border:2px solid rgba(168,184,216,.25);border-top-color:var(--amber);
   border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Pure-CSS late hint. The whole loading screen is static HTML, so it also
+   shows when JavaScript never runs at all (blocked viewer, sandboxed
+   iframe, restrictive CSP) — in which case no inline watchdog can fire
+   either. This surfaces after 5s using only an animation delay, so the
+   player still gets told something useful with zero JS. */
+#bootHint{opacity:0;animation:lateHint 1s ease 5s forwards;max-width:min(90vw,420px);
+  text-transform:none;letter-spacing:.04em;line-height:1.55}
+@keyframes lateHint{to{opacity:1}}
 
 /* transient sound-enabled toast */
 #snack{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--sab));z-index:8;
@@ -205,10 +213,58 @@ canvas{display:block;touch-action:none}
     <p class="big" style="font-size:26px">JUMP JUICE</p>
     <div class="ring"></div>
     <p class="lil" id="bootTxt">Loading</p>
+    <p class="lil" id="bootErr" style="display:none;color:var(--rose);max-width:min(90vw,420px);
+       letter-spacing:.04em;text-transform:none;line-height:1.5"></p>
+    <button class="btn" id="bootSkip" style="display:none">Continue anyway</button>
+    <p class="lil" id="bootHint">Still on this screen? JavaScript may be blocked here.
+       Save the file and open it directly in Safari or Chrome.</p>
+    <noscript><p class="lil" style="color:var(--rose);text-transform:none">
+      This game needs JavaScript. Please enable it and reload.</p></noscript>
   </div>
 
   <div id="snack"></div>
 </div>
+<script>
+/* ══════ BOOT WATCHDOG ═════════════════════════════════════════════
+   Deliberately a separate script that runs BEFORE the game, so it still
+   works if the game script throws at top level. Without this, any such
+   throw left the loading screen up forever with no explanation — which
+   is exactly what happened when a browser returned null from
+   getContext() (iOS can do this under canvas/memory pressure).
+   The player is never trapped: the error is shown on screen and a
+   Continue button force-dismisses the overlay. */
+(function(){
+  var el=function(id){return document.getElementById(id);};
+  var shown=false;
+  function reveal(msg,fatal){
+    if(window.__jjaBooted||shown)return; shown=true;
+    var t=el("bootTxt"); if(t)t.textContent=fatal?"Startup problem":"Taking longer than expected";
+    var e=el("bootErr"); if(e){e.textContent=msg;e.style.display="block";}
+    var k=el("bootSkip"); if(k)k.style.display="inline-flex";
+    var r=document.querySelector("#boot .ring"); if(r)r.style.display="none";
+  }
+  window.__jjaBooted=false;
+  window.__jjaReveal=reveal;
+  addEventListener("error",function(ev){
+    reveal(((ev&&ev.message)||"unknown error")+
+      (ev&&ev.lineno?"  (line "+ev.lineno+")":""),true);
+  });
+  addEventListener("unhandledrejection",function(ev){
+    var r=ev&&ev.reason;
+    reveal("Unhandled rejection: "+((r&&r.message)||String(r||"unknown")),true);
+  });
+  /* last-resort: if the game never signalled ready, let the player through */
+  setTimeout(function(){
+    var b=el("boot");
+    if(!window.__jjaBooted&&b&&!b.classList.contains("gone"))
+      reveal("The game did not finish starting. Tap Continue to try playing anyway.",false);
+  },4000);
+  document.addEventListener("click",function(ev){
+    if(!ev.target||ev.target.id!=="bootSkip")return;
+    var b=el("boot"); if(b){b.classList.add("gone");setTimeout(function(){b.style.display="none";},380);}
+  });
+})();
+</script>
 <script>
 (function(){
 "use strict";
@@ -233,7 +289,15 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 
 const $=id=>document.getElementById(id);
-const cv=$("game"),ctx=cv.getContext("2d",{alpha:false});
+const cv=$("game");
+const ctx=cv.getContext("2d",{alpha:false})||cv.getContext("2d");
+if(!ctx){
+  /* No 2D canvas at all — report it instead of hanging on the spinner */
+  if(window.__jjaReveal)window.__jjaReveal(
+    "This browser did not provide a 2D canvas, so the game cannot draw. "+
+    "Close some tabs or other apps and reload.",true);
+  return;
+}
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
 /* device / capability probes done once */
@@ -977,12 +1041,19 @@ function compact(a,keep){let j=0;for(let i=0;i<a.length;i++){const v=a[i];if(kee
    per glowing enemy, on the boss and on the player. Pre-rendered
    radial-gradient sprites do the same job for a drawImage each. */
 function makeGlow(col,r){
-  const c=document.createElement("canvas");c.width=c.height=r*2;
-  const g=c.getContext("2d"),rg=g.createRadialGradient(r,r,0,r,r,r);
-  rg.addColorStop(0,col);rg.addColorStop(.35,col);
-  rg.addColorStop(1,"rgba(0,0,0,0)");
-  g.globalAlpha=1;g.fillStyle=rg;g.beginPath();g.arc(r,r,r,0,7);g.fill();
-  return c;}
+  /* Returns null rather than throwing if the browser refuses another
+     canvas context (iOS does this under canvas/memory pressure). Glows
+     are decoration — losing them must never stop the game booting. */
+  try{
+    const c=document.createElement("canvas");c.width=c.height=r*2;
+    const g=c.getContext("2d");
+    if(!g)return null;
+    const rg=g.createRadialGradient(r,r,0,r,r,r);
+    rg.addColorStop(0,col);rg.addColorStop(.35,col);
+    rg.addColorStop(1,"rgba(0,0,0,0)");
+    g.globalAlpha=1;g.fillStyle=rg;g.beginPath();g.arc(r,r,r,0,7);g.fill();
+    return c;
+  }catch(e){return null;}}
 const GLOW_ORB=makeGlow("rgba(255,201,74,.55)",22);
 const GLOW_CRY=makeGlow("rgba(127,231,255,.6)",30);
 const GLOW_HOT=makeGlow("rgba(255,122,47,.7)",26);
@@ -999,9 +1070,10 @@ function juiceGlow(){
    of ~18 ghosts every frame. Now the body is rasterised once per frame
    and the ghosts are drawImage blits. */
 const RSPR=document.createElement("canvas");RSPR.width=88;RSPR.height=120;
-const rsp=RSPR.getContext("2d");
+const rsp=RSPR.getContext("2d");          /* may be null — bakeRunner guards */
 let rsprKey="";
 function bakeRunner(kit){
+  if(!rsp)return;
   const key=me().id+"|"+kit.b+"|"+kit.e;
   if(key===rsprKey&&frame%2)return;              /* cheap: refresh every other frame */
   rsprKey=key;
@@ -1807,7 +1879,7 @@ function EYE(c,x,y,r,op,pup){
   c.beginPath();c.ellipse(x,y,r,r*(op===undefined?1:Math.max(.06,op)),0,0,7);
   c.fillStyle="#FFFFFF";c.fill();OUT(c,1.5);
   if(op===undefined||op>.35){c.beginPath();c.arc(x+(pup||0),y,r*.45,0,7);c.fillStyle="#0B1226";c.fill();}}
-const glow=(g,x,y,sc)=>{const r=g.width/2*(sc||1);ctx.drawImage(g,x-r,y-r,r*2,r*2);};
+const glow=(g,x,y,sc)=>{if(!g)return;const r=g.width/2*(sc||1);ctx.drawImage(g,x-r,y-r,r*2,r*2);};
 
 function draw(){
   const kx=shake?(Math.random()-.5)*shake:0,ky=shake?(Math.random()-.5)*shake:0;
@@ -2045,7 +2117,7 @@ function draw(){
   ctx.globalAlpha=1;
 
   /* ── trail: blits of a once-per-frame raster, not 18 vector redraws ── */
-  if(!lite&&ST==="play"){
+  if(!lite&&rsp&&ST==="play"){
     const kit=kitFor(me(),frame,juice>0);
     bakeRunner(kit);
     for(let i=0;i<TMAX;i++){
@@ -2398,9 +2470,11 @@ function paintRoster(){
     d.querySelector(un?".s":".c").textContent=un?PASS[c.pas].t:("◈"+c.cost);
     const rr=d.querySelector(".rr");rr.textContent=RAR[c.rar].n;rr.style.color=RAR[c.rar].c;
     const g=d.querySelector("canvas").getContext("2d");
-    g.save();g.translate(6,7);
-    try{c.draw(g,44,56,1,un?kitFor(c,40,false):{b:"#5B6B85",d:"#0B1226",e:"#8FA0B8"},40);}catch(e){}
-    g.restore();
+    if(g){                                  /* portrait is optional chrome */
+      g.save();g.translate(6,7);
+      try{c.draw(g,44,56,1,un?kitFor(c,40,false):{b:"#5B6B85",d:"#0B1226",e:"#8FA0B8"},40);}catch(e){}
+      g.restore();
+    }
     d.onclick=()=>{
       if(un){SAVE.sel=c.id;sfx("click");}
       else if(SAVE.coins>=c.cost){SAVE.coins-=c.cost;SAVE.unlocked.push(c.id);SAVE.sel=c.id;sfx("unlock");checkAch();}
@@ -2482,6 +2556,7 @@ $("oVol").onchange=()=>{sfx("click");};
 
 /* ══════ BOOT ═════════════════════════════════════════════════════ */
 function bootDone(){
+  window.__jjaBooted=true;                  /* stand the watchdog down */
   refreshGuides();
   if(IPHONE)$("iosNote").style.display="block";
   if(!CAN_FS&&IOS)$("bFull").textContent="How to fullscreen";
@@ -2521,11 +2596,20 @@ if(/[?&]debug=1\b/.test(location.search)){
   };
 }
 
-$("bootTxt").textContent="Loading";
-syncOpts();
-resize();
-load();
-setTimeout(()=>{if(!$("boot").classList.contains("gone"))bootDone();},2500);  /* never hang on boot */
+/* The failsafe is armed BEFORE any work that could throw. Previously it
+   was registered after load(), so a synchronous throw in startup meant
+   it never got registered at all and the spinner ran forever. */
+setTimeout(()=>{try{if(!$("boot").classList.contains("gone"))bootDone();}catch(e){}},2500);
+try{
+  $("bootTxt").textContent="Loading";
+  syncOpts();
+  resize();
+  load();
+}catch(e){
+  /* Boot far enough to be playable, and surface what went wrong */
+  if(window.__jjaReveal)window.__jjaReveal("Startup: "+(e&&e.message||e),true);
+  try{bootDone();}catch(_){}
+}
 })();
 </script>
 </body>
