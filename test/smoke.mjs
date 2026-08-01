@@ -6,7 +6,7 @@ import path from "path";
 
 const arg = (k, d) => (process.argv.find(a => a.startsWith("--" + k + "=")) || "=" + d).split("=")[1];
 const DEV = arg("device", "desktop");
-const FILE = "file://" + path.resolve("jumpjuice.html") + "?debug=1";
+const FILE = "file://" + path.resolve(arg("file", "jumpjuice.html")) + "?debug=1";
 
 const PROFILES = {
   desktop: { viewport: { width: 1280, height: 800 }, hasTouch: false, isMobile: false },

@@ -3,7 +3,8 @@
    locked-down / older / sandboxed browser would. */
 import { chromium, devices } from "/opt/node22/lib/node_modules/playwright/index.mjs";
 import path from "path";
-const FILE = "file://" + path.resolve("jumpjuice.html");
+const arg = (k, d) => (process.argv.find(a => a.startsWith("--" + k + "=")) || "=" + d).split("=")[1];
+const FILE = "file://" + path.resolve(arg("file", "jumpjuice.html"));
 
 const CASES = {
   "baseline": () => {},

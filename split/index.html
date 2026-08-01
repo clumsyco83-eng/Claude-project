@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0B1226">
+  <title>Jump Juice Adventure</title>
+  <link rel="stylesheet" href="jumpjuice.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <button id="pauseBtn" aria-label="Pause">&#10074;&#10074;</button>
+
+  <div class="ov show" id="ovStart">
+    <p class="big">JUMP JUICE</p>
+    <p class="lil">Fill the meter &middot; trigger <span class="amb">JUICE MODE</span> &middot; go further</p>
+    <div class="guide" id="gStart"></div>
+    <p class="lil amb" id="modLine" style="display:none"></p>
+    <div class="xpwrap"><p class="lil" id="xpTxt" style="text-align:left;margin-bottom:3px"></p><div class="xpbar"><i id="xpFill"></i></div></div>
+    <div class="btns">
+      <button class="btn p" id="bPlay">Start</button>
+      <button class="btn" id="bFull">Fullscreen</button>
+      <button class="btn" id="bChars">Juice Heroes</button>
+      <button class="btn" id="bLab">Juice Lab</button>
+      <button class="btn" id="bAch">Juice Journey</button>
+    </div>
+    <div class="list" id="msStart"></div>
+  </div>
+
+  <div class="ov" id="ovDead">
+    <p class="lil" id="dTitle">RUN OVER</p>
+    <p class="big"><span id="dDist">0</span><span style="font-size:.42em">m</span></p>
+    <p class="lil" id="dStats">&mdash;</p>
+    <p class="lil amb" id="dRec" style="display:none">&#9733; NEW RECORD</p>
+    <div class="xpwrap"><p class="lil" id="xpTxt2" style="text-align:left;margin-bottom:3px"></p><div class="xpbar"><i id="xpFill2"></i></div></div>
+    <div class="list" id="msDead"></div>
+    <div class="btns">
+      <button class="btn p" id="bAgain">Tap to run again</button>
+      <button class="btn" id="bChars2">Juice Heroes</button>
+    </div>
+  </div>
+
+  <div class="ov" id="ovChars">
+    <p class="lil">Choose your <span class="amb">juice hero</span></p>
+    <div class="roster" id="roster"></div>
+    <div class="btns"><button class="btn p" id="bBack">Back</button></div>
+  </div>
+
+  <div class="ov" id="ovLab">
+    <p class="lil">Juice <span class="amb">lab</span></p>
+    <p class="lil" id="labFruit"></p>
+    <div class="list" id="labList" style="max-width:340px"></div>
+    <p class="lil" id="labEquip" style="color:var(--mint)"></p>
+    <p class="lil">Juice Mode glow</p>
+    <div class="opts" id="labSkins" style="max-width:360px"></div>
+    <div class="btns"><button class="btn p" id="bBack3">Back</button></div>
+  </div>
+
+  <div class="ov" id="ovAch">
+    <p class="lil">Juice <span class="amb">journey</span></p>
+    <div class="list" id="achList"></div>
+    <div class="btns"><button class="btn p" id="bBack2">Back</button></div>
+  </div>
+
+  <div class="ov" id="ovPause">
+    <p class="big">PAUSED</p>
+    <div class="opts">
+      <label class="chip"><span class="dot"></span>Sound<input type="checkbox" id="oSnd" checked></label>
+      <label class="chip"><span class="dot"></span>Vibrate<input type="checkbox" id="oVib" checked></label>
+      <label class="chip"><span class="dot"></span>Calm mode<input type="checkbox" id="oCalm"></label>
+      <label class="chip"><span class="dot"></span>Saver<input type="checkbox" id="oBat"></label>
+      <label class="chip"><span class="dot"></span>Invert steer<input type="checkbox" id="oInv"></label>
+      <label class="chip"><span class="dot"></span>Daily modifier<input type="checkbox" id="oMod" checked></label>
+    </div>
+    <div class="volrow"><span>Volume</span><input type="range" id="oVol" min="0" max="100" value="42"><span id="volNum">42</span></div>
+    <div class="guide" id="gPause"></div>
+    <p class="lil" id="audioDiag" style="opacity:.7"></p>
+    <p class="warnrow" id="iosNote" style="display:none">iPhone: if you hear nothing, flip the side Silent switch off</p>
+    <div class="btns">
+      <button class="btn p" id="bResume">Resume</button>
+      <button class="btn" id="bQuit">End run</button>
+    </div>
+  </div>
+
+  <div id="rot">
+    <div class="ph"></div>
+    <div class="rtxt">Rotate to landscape<br>for a wider view</div>
+    <button class="btn" id="bRotOk">Got it</button>
+  </div>
+
+  <div id="boot">
+    <p class="big" style="font-size:26px">JUMP JUICE</p>
+    <div class="ring"></div>
+    <p class="lil" id="bootTxt">Loading</p>
+    <p class="lil" id="bootErr" style="display:none;color:var(--rose);max-width:min(90vw,420px);
+       letter-spacing:.04em;text-transform:none;line-height:1.5"></p>
+    <button class="btn" id="bootSkip" style="display:none">Continue anyway</button>
+    <p class="lil" id="bootHint">Still on this screen? Scripts are not running here.
+       File previews cannot run games &mdash; including the iPhone one, and iOS Safari
+       cannot open local files at all. Open this from a web address, or on a computer.</p>
+    <noscript><p class="lil" style="color:var(--rose);text-transform:none">
+      This game needs JavaScript. Please enable it and reload.</p></noscript>
+  </div>
+
+  <div id="snack"></div>
+</div>
+
+<!-- boot.js must come first: it is the watchdog for jumpjuice.js.
+     Both are classic scripts on purpose, so double-clicking this file works. -->
+<script src="boot.js"></script>
+<script src="jumpjuice.js"></script>
+</body>
+</html>

@@ -2,7 +2,8 @@
    kinds, the Juice Lab, awards/streak, cosmetics and the top HUD. */
 import { chromium, devices } from "/opt/node22/lib/node_modules/playwright/index.mjs";
 import path from "path";
-const FILE = "file://" + path.resolve("jumpjuice.html") + "?debug=1";
+const arg = (k, d) => (process.argv.find(a => a.startsWith("--" + k + "=")) || "=" + d).split("=")[1];
+const FILE = "file://" + path.resolve(arg("file", "jumpjuice.html")) + "?debug=1";
 let pass = 0, fail = 0;
 const ok = (n, c, x) => { if (c) { pass++; console.log("  ✓ " + n); }
   else { fail++; console.log("  ✗ " + n + (x !== undefined ? "  →  " + JSON.stringify(x) : "")); } };

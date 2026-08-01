@@ -1,0 +1,122 @@
+/* Jump Juice Adventure — styles */
+:root{--bone:#F2EDE4;--haze:#A8B8D8;--amber:#FFC94A;--ink:#0B1226;--rose:#FF5F7A;--mint:#6FCF7F;
+      --line:rgba(168,184,216,.22);--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+      --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+      --sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;overscroll-behavior:none;
+          touch-action:none;font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;color:var(--bone)}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000}
+canvas{display:block;touch-action:none}
+
+/* overlays — visibility/opacity (not display) so they can cross-fade,
+   and pointer-events:none while hidden so canvas taps pass through */
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:9px;background:rgba(11,18,38,.93);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+    padding:calc(14px + var(--sat)) calc(16px + var(--sar)) calc(14px + var(--sab)) calc(16px + var(--sal));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;line-height:1.4;z-index:5;
+    opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease}
+.ov.show{opacity:1;visibility:visible;pointer-events:auto}
+.big{font-size:clamp(24px,6.5vh,44px);font-weight:700;margin:0;letter-spacing:-.02em;text-align:center}
+.lil{font-family:var(--mono);font-size:clamp(9px,1.6vh,11px);letter-spacing:.13em;text-transform:uppercase;
+     color:var(--haze);margin:0;text-align:center}
+.amb{color:var(--amber)}
+.list{width:100%;max-width:300px;display:grid;gap:4px}
+.it{display:grid;grid-template-columns:1fr auto;gap:2px 8px;border:1px solid var(--line);border-radius:7px;
+    padding:5px 8px;font-size:clamp(9.5px,1.6vh,11.5px);background:rgba(168,184,216,.05)}
+.it.done{border-color:rgba(255,201,74,.5);background:rgba(255,201,74,.09)}
+.it .v{font-family:var(--mono);font-size:9px;color:var(--haze)}
+.it.done .v{color:var(--amber)}
+.it .track{grid-column:1/-1;height:2px;background:rgba(168,184,216,.2);border-radius:2px}
+.it .fill{height:100%;background:var(--amber);border-radius:2px;transition:width .3s ease}
+.btns{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+.btn{appearance:none;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:rgba(168,184,216,.1);
+     color:var(--bone);font-family:var(--mono);font-size:clamp(9.5px,1.6vh,11px);letter-spacing:.11em;
+     text-transform:uppercase;padding:12px 16px;min-height:44px;touch-action:manipulation;
+     transition:transform .07s ease,filter .12s ease}
+.btn:active{transform:scale(.95);filter:brightness(1.15)}
+.btn.p{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:5px;width:100%;max-width:520px;
+        max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:2px}
+.card{border:1px solid var(--line);border-radius:8px;padding:5px 3px;text-align:center;cursor:pointer;
+      background:rgba(168,184,216,.05);transition:transform .07s ease}
+.card:active{transform:scale(.94)}
+.card.sel{border-color:var(--amber);background:rgba(255,201,74,.1)}
+.card.lock{opacity:.5}
+.card canvas{width:28px;height:35px;margin:0 auto;display:block}
+.card .n{font-family:var(--mono);font-size:7.5px;letter-spacing:.06em;margin-top:2px}
+.card .s{font-family:var(--mono);font-size:7px;color:var(--haze);line-height:1.25}
+.card .c{font-family:var(--mono);font-size:8px;color:var(--amber)}
+.card .rr{font-family:var(--mono);font-size:6.5px;letter-spacing:.09em;margin-top:2px;opacity:.85}
+.xpwrap{width:100%;max-width:300px}
+.xpbar{height:4px;background:rgba(168,184,216,.2);border-radius:3px;overflow:hidden}
+.xpbar i{display:block;height:100%;background:var(--amber);transition:width .35s ease}
+.opts{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:420px}
+.chip{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;
+  min-height:38px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--haze);
+  text-transform:uppercase;touch-action:manipulation}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip .dot{width:7px;height:7px;border-radius:50%;border:1px solid currentColor;flex:none}
+.chip:has(input:checked){color:var(--amber);border-color:rgba(255,201,74,.45);background:rgba(255,201,74,.07)}
+.chip:has(input:checked) .dot{background:var(--amber);box-shadow:0 0 6px rgba(255,201,74,.7)}
+.volrow{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:9px;letter-spacing:.09em;
+  color:var(--haze);text-transform:uppercase}
+.volrow input[type=range]{-webkit-appearance:none;appearance:none;width:130px;height:22px;background:transparent}
+.volrow input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:rgba(168,184,216,.25)}
+.volrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;
+  border-radius:50%;background:var(--amber);border:none}
+.volrow input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:rgba(168,184,216,.25)}
+.volrow input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:var(--amber)}
+#pauseBtn{position:absolute;top:calc(6px + var(--sat));right:calc(8px + var(--sar));z-index:4;
+  width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(11,18,38,.55);
+  color:var(--bone);font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;
+  touch-action:manipulation}
+#pauseBtn.show{display:flex}
+#pauseBtn:active{transform:scale(.92)}
+
+/* Rotate hint. The original shipped this CSS as a full-screen modal but
+   never wired it up. Wired up as-designed it covered the Start button on
+   every phone, so it is a NON-BLOCKING bottom banner instead: the
+   container ignores pointer events, only its dismiss button takes them,
+   and it never sits over the menu's buttons. */
+#rot{position:absolute;left:50%;transform:translateX(-50%);
+  bottom:calc(10px + var(--sab));z-index:6;display:none;align-items:center;gap:11px;
+  padding:9px 12px;border-radius:11px;background:rgba(11,18,38,.94);border:1px solid var(--line);
+  pointer-events:none;max-width:min(92vw,360px)}
+#rot.show{display:flex}
+#rot .ph{width:17px;height:27px;flex:none;border:2px solid var(--amber);border-radius:4px;
+  animation:tip 1.8s ease-in-out infinite}
+#rot .rtxt{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--haze);line-height:1.5;text-align:left}
+#rot .btn{pointer-events:auto;padding:8px 10px;min-height:36px;font-size:8.5px;flex:none}
+@keyframes tip{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+
+/* boot / loading */
+#boot{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;background:#0B1226;z-index:12;transition:opacity .3s ease}
+#boot.gone{opacity:0;pointer-events:none}
+#boot .ring{width:34px;height:34px;border:2px solid rgba(168,184,216,.25);border-top-color:var(--amber);
+  border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Pure-CSS late hint. The whole loading screen is static HTML, so it also
+   shows when JavaScript never runs at all (blocked viewer, sandboxed
+   iframe, restrictive CSP) — in which case no inline watchdog can fire
+   either. This surfaces after 5s using only an animation delay, so the
+   player still gets told something useful with zero JS. */
+#bootHint{opacity:0;animation:lateHint 1s ease 5s forwards;max-width:min(90vw,420px);
+  text-transform:none;letter-spacing:.04em;line-height:1.55}
+@keyframes lateHint{to{opacity:1}}
+
+/* transient sound-enabled toast */
+#snack{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--sab));z-index:8;
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  padding:9px 14px;border-radius:9px;background:rgba(11,18,38,.9);border:1px solid var(--line);
+  color:var(--amber);opacity:0;transition:opacity .25s ease;pointer-events:none;text-align:center;
+  max-width:min(88vw,340px)}
+#snack.show{opacity:1}
+
+.guide{display:grid;gap:4px;font-family:var(--mono);font-size:clamp(9px,1.6vh,10.5px);color:var(--haze);
+  letter-spacing:.05em;text-align:center;line-height:1.6}
+.guide b{color:var(--amber);font-weight:500}
+.warnrow{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--rose);text-align:center;
+  text-transform:uppercase;margin:0}
