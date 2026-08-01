@@ -234,3 +234,71 @@ is a mitigation, not a guarantee — no web page can override that hardware swit
 every iOS build. The pause menu therefore shows the live `AudioContext` state and, on
 iPhone, a note to check the switch. If the readout says `running` and you still hear
 nothing, it is the switch or the volume, not the game.
+
+---
+
+# Upgrade pass (2026-08-01)
+
+Requested: hero abilities, Juice Mode as the game's identity, a clearer and
+more varied boss fight, an expanded awards menu, a Juice Lab, more menu
+personality, and the HUD moved to the top of the screen.
+
+## HUD
+Moved to the **top of the screen** (previously the top of the play band,
+which on a tall phone parked the cluster in the middle of empty sky). It
+clears the notch via a `env(safe-area-inset-top)` probe converted into
+canvas units. Left column stacks from a running cursor so an absent row
+never leaves a gap. Boss health is now **hearts**, recoloured per boss,
+with the boss name and `PHASE n/3`. Dash, combo and the active hero
+ability sit bottom-right — they were briefly at the top, where they
+collided with the pause button.
+
+## Heroes (5 headliners + 30 upgraded)
+| Hero | Ability |
+|---|---|
+| Blip (Classic) | balanced |
+| Bolt | +25% speed, Juice Mode 40% shorter |
+| Frost | enemies move 45% slower, immune to ice |
+| Inferno | ×2 damage, but floatier and harder to control |
+| Nature | +60% juice from everything collected |
+
+Every existing passive was rewritten to be felt rather than subtle
+(magnet tripled, etc.), and the active ability is named on the HUD.
+Verified: Bolt is measurably faster than Classic, Nature's meter gain is
+>1.5× Classic's, Inferno's damage is exactly double.
+
+## Juice Mode
+Transformation (1.24× scale + orbiting aura), a **landing shockwave that
+damages every nearby enemy and the boss**, a 48-frame slow-motion
+entrance with hitstop, double points called out on screen, a colour that
+brews and cosmetics retint, and a 1.5s wind-down warning.
+
+## Bosses — 4 kinds, 3 phases each
+`JUICE MONSTER` (tentacled maw) · `FLAME DJINN` (fire elemental) ·
+`TERRA REX` (horned brute) · `CYCLOPS EYE` (lashed orb). Own silhouette,
+palette, projectile and minion type each; they rotate by zone, and the
+first boss of a run is always the Juice Monster.
+
+Phases: **1** projectiles → **2** spawns minions (one arrives with the
+phase announcement, so the mechanic is always seen) → **3** rage: faster
+dives, 4-way spread, shorter stun. The dodge→punish loop is unchanged:
+telegraphed dive lane, then a stunned window with a glowing green core.
+
+## Juice Lab
+🍓 🥭 🍋 🥝 drop in runs and from bosses. Brew ⚡ Lightning (+35% speed
+while juiced), 💪 Mega (wider shockwave, +25% meter) or 🌈 Rainbow (60%
+longer, triple orbs). One brew is equipped at a time and consumed on use.
+
+## Juice Journey
+15 awards including 1000m, 2000 drops, ×25 combo, first boss, 10 bosses,
+all 30 heroes, brew-them-all, harvest 50 fruit, and **play 7 days in a
+row** (real streak tracking). Awards unlock 5 Juice Mode glow skins.
+
+## Menu personality
+`Runners` → **Juice Heroes** · `Awards` → **Juice Journey** · new
+**Juice Lab**.
+
+## Verification
+`test/features.mjs` — 34 new assertions, all passing.
+`test/smoke.mjs` — 60 assertions × 5 device profiles, all passing.
+`test/hostile.mjs` — 19 crippled-environment cases, no hangs.

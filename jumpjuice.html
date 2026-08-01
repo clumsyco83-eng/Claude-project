@@ -152,8 +152,9 @@ canvas{display:block;touch-action:none}
     <div class="btns">
       <button class="btn p" id="bPlay">Start</button>
       <button class="btn" id="bFull">Fullscreen</button>
-      <button class="btn" id="bChars">Runners</button>
-      <button class="btn" id="bAch">Awards</button>
+      <button class="btn" id="bChars">Juice Heroes</button>
+      <button class="btn" id="bLab">Juice Lab</button>
+      <button class="btn" id="bAch">Juice Journey</button>
     </div>
     <div class="list" id="msStart"></div>
   </div>
@@ -167,18 +168,28 @@ canvas{display:block;touch-action:none}
     <div class="list" id="msDead"></div>
     <div class="btns">
       <button class="btn p" id="bAgain">Tap to run again</button>
-      <button class="btn" id="bChars2">Runners</button>
+      <button class="btn" id="bChars2">Juice Heroes</button>
     </div>
   </div>
 
   <div class="ov" id="ovChars">
-    <p class="lil">Choose your runner</p>
+    <p class="lil">Choose your <span class="amb">juice hero</span></p>
     <div class="roster" id="roster"></div>
     <div class="btns"><button class="btn p" id="bBack">Back</button></div>
   </div>
 
+  <div class="ov" id="ovLab">
+    <p class="lil">Juice <span class="amb">lab</span></p>
+    <p class="lil" id="labFruit"></p>
+    <div class="list" id="labList" style="max-width:340px"></div>
+    <p class="lil" id="labEquip" style="color:var(--mint)"></p>
+    <p class="lil">Juice Mode glow</p>
+    <div class="opts" id="labSkins" style="max-width:360px"></div>
+    <div class="btns"><button class="btn p" id="bBack3">Back</button></div>
+  </div>
+
   <div class="ov" id="ovAch">
-    <p class="lil">Awards</p>
+    <p class="lil">Juice <span class="amb">journey</span></p>
     <div class="list" id="achList"></div>
     <div class="btns"><button class="btn p" id="bBack2">Back</button></div>
   </div>
@@ -333,6 +344,17 @@ let W=900,H=450,VS=1,WY=0,DPR=1;
 function vpW(){const v=window.visualViewport;return Math.max(1,Math.round(v?v.width:innerWidth));}
 function vpH(){const v=window.visualViewport;return Math.max(1,Math.round(v?v.height:innerHeight));}
 let portrait=false;
+let safeTop=0;                            /* notch inset, in canvas units */
+function readSafeTop(){
+  try{
+    const probe=document.createElement("div");
+    probe.style.cssText="position:fixed;top:0;left:0;height:env(safe-area-inset-top,0px);width:0";
+    document.body.appendChild(probe);
+    const px=parseFloat(getComputedStyle(probe).height)||0;
+    probe.remove();
+    return px;
+  }catch(e){return 0;}
+}
 function resize(){
   const vw=vpW(),vh=vpH(),ar=vw/vh;
   portrait=ar<1.15;
@@ -348,6 +370,10 @@ function resize(){
   const s=Math.min(vw/W,vh/H);
   cv.style.width=(W*s)+"px";cv.style.height=(H*s)+"px";
   VS=s;
+  /* HUD sits at the true top of the screen, so it must clear the notch.
+     The canvas is not padded by safe-area insets, so convert the inset
+     into canvas units. */
+  safeTop=Math.min(60,(readSafeTop()||0)/Math.max(.0001,s));
   skyKey="";                              // invalidate cached gradient
   updateRot();
 }
@@ -375,7 +401,9 @@ function updateRot(){
    in a real browser. localStorage is now the primary store. */
 const DEF_SEL="Blip";
 const SAVE={best:0,coins:0,xp:0,unlocked:[DEF_SEL],sel:DEF_SEL,msDate:"",msProg:[0,0,0,0],
-            msDone:[0,0,0,0],ach:{},totalOrbs:0,juiceRuns:0,tut:0,bossKills:0};
+            msDone:[0,0,0,0],ach:{},totalOrbs:0,juiceRuns:0,tut:0,bossKills:0,
+            fruit:{straw:0,mango:0,lemon:0,kiwi:0},brew:"",
+            streak:0,lastDay:"",maxCombo:0};
 const KEY="jja2";
 const LVXP=lv=>250+lv*180;
 function level(){let lv=1,x=Math.max(0,SAVE.xp|0),n=0;
@@ -397,6 +425,17 @@ function adopt(raw){
   SAVE.xp=num(raw.xp,0,0,9e9);     SAVE.totalOrbs=num(raw.totalOrbs,0,0,9e9);
   SAVE.juiceRuns=num(raw.juiceRuns,0,0,9e6); SAVE.bossKills=num(raw.bossKills,0,0,9e6);
   SAVE.tut=raw.tut?1:0;
+  SAVE.fruit={straw:0,mango:0,lemon:0,kiwi:0};
+  if(raw.fruit&&typeof raw.fruit==="object")
+    for(const k in SAVE.fruit)SAVE.fruit[k]=num(raw.fruit[k],0,0,999999);
+  SAVE.brew=BREWS[raw.brew]?raw.brew:"";
+  SAVE.streak=num(raw.streak,0,0,99999);
+  SAVE.lastDay=typeof raw.lastDay==="string"?raw.lastDay:"";
+  SAVE.maxCombo=num(raw.maxCombo,0,0,999999);
+  SAVE.fruitTotal=num(raw.fruitTotal,0,0,9999999);
+  SAVE.skin=SKINS.some(k=>k.id===raw.skin)?raw.skin:"classic";
+  SAVE.brewed={}; if(raw.brewed&&typeof raw.brewed==="object")
+    for(const k in raw.brewed)if(BREWS[k]&&raw.brewed[k])SAVE.brewed[k]=1;
   SAVE.msDate=typeof raw.msDate==="string"?raw.msDate:"";
   for(let i=0;i<4;i++){
     SAVE.msProg[i]=num(raw.msProg&&raw.msProg[i],0,0,9e7);
@@ -411,7 +450,7 @@ function adopt(raw){
   SAVE.sel=ids.has(raw.sel)&&SAVE.unlocked.includes(raw.sel)?raw.sel:SAVE.unlocked[0];
 }
 function load(){
-  const go=()=>{rollMissions();rollMod();paintAll();bootDone();};
+  const go=()=>{rollStreak();rollMissions();rollMod();paintAll();bootDone();};
   let got=null;
   try{const s=localStorage.getItem(KEY);if(s)got=JSON.parse(s);}catch(e){}
   if(got){adopt(got);go();return;}
@@ -634,6 +673,39 @@ function snack(msg,ms){
   el.textContent=msg;el.classList.add("show");
   clearTimeout(snackT);snackT=setTimeout(()=>el.classList.remove("show"),ms||2600);
 }
+/* ══════ JUICE LAB ════════════════════════════════════════════════
+   Fruit drops during runs and from bosses. Spend it in the Lab to brew a
+   juice that changes what Juice Mode does on your next run. One brew is
+   equipped at a time and it is consumed when you use it, so there is a
+   reason to keep collecting. */
+const FRUIT={
+  straw:{n:"Strawberry",icon:"🍓",col:"#FF5F7A"},
+  mango:{n:"Mango",     icon:"🥭",col:"#FFAA3B"},
+  lemon:{n:"Lemon",     icon:"🍋",col:"#FFE24A"},
+  kiwi: {n:"Kiwi",      icon:"🥝",col:"#7BD86A"}};
+const BREWS={
+  lightning:{n:"Lightning Juice",icon:"⚡",col:"#FFE24A",
+    cost:{lemon:3,kiwi:1},
+    t:"Juice Mode also makes you 35% faster and zaps enemies you pass"},
+  mega:{n:"Mega Juice",icon:"💪",col:"#FF7A3B",
+    cost:{straw:3,mango:2},
+    t:"Juice Mode makes you huge — wider shockwave, +25% meter gain"},
+  rainbow:{n:"Rainbow Juice",icon:"🌈",col:"#FF8AD8",
+    cost:{straw:2,mango:2,lemon:2,kiwi:2},
+    t:"Juice Mode lasts 60% longer and orbs are worth triple"}};
+let BREW=null;                             /* brew active this run */
+function fruitTotal(){let n=0;for(const k in SAVE.fruit)n+=SAVE.fruit[k]|0;return n;}
+function canBrew(k){
+  const c=BREWS[k].cost;
+  for(const f in c)if((SAVE.fruit[f]|0)<c[f])return false;
+  return true;}
+function doBrew(k){
+  if(!canBrew(k)){sfx("nope");snack("Not enough fruit for "+BREWS[k].n);return;}
+  const c=BREWS[k].cost;
+  for(const f in c)SAVE.fruit[f]-=c[f];
+  SAVE.brew=k;sfx("unlock");save();paintAll();paintLab();
+  snack(BREWS[k].icon+" "+BREWS[k].n+" ready — it applies to your next run");}
+
 /* ══════ MISSIONS / AWARDS ═════════════════════════════════════════ */
 const MPOOL=[
  {id:"jump",t:n=>"Jump "+n+" times in a run",amt:[40,60,90]},
@@ -645,6 +717,14 @@ const MPOOL=[
 let MS=[];
 function seeded(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
   return()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return((h>>>0)/4294967296);};}
+/* login streak, for the "7 days in a row" award */
+function rollStreak(){
+  const t=today();
+  if(SAVE.lastDay===t)return;
+  const y=new Date();y.setDate(y.getDate()-1);
+  const yk=y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate();
+  SAVE.streak=(SAVE.lastDay===yk)?SAVE.streak+1:1;
+  SAVE.lastDay=t;save();}
 function rollMissions(){
   const r=seeded(today()),p=MPOOL.slice();MS=[];
   for(let i=0;i<4;i++){const m=p.splice(Math.floor(r()*p.length),1)[0];
@@ -668,7 +748,22 @@ const ACH=[
  {id:"a6",t:"Unlock 10 runners",chk:()=>SAVE.unlocked.length>=10},
  {id:"a9",t:"Unlock all 30 runners",chk:()=>SAVE.unlocked.length>=CHARS.length},
  {id:"a7",t:"Defeat the Sky Tyrant",chk:()=>SAVE.bossKills>=1},
- {id:"a8",t:"Defeat 10 Sky Tyrants",chk:()=>SAVE.bossKills>=10}];
+ {id:"a8",t:"Defeat 10 bosses",chk:()=>SAVE.bossKills>=10},
+ {id:"a10",t:"Run 1000m in one run",chk:()=>SAVE.best>=1000},
+ {id:"a11",t:"Collect 2000 juice drops",chk:()=>SAVE.totalOrbs>=2000},
+ {id:"a12",t:"Play 7 days in a row",chk:()=>SAVE.streak>=7},
+ {id:"a13",t:"Reach a ×25 combo",chk:()=>SAVE.maxCombo>=25},
+ {id:"a14",t:"Brew every juice at least once",chk:()=>SAVE.brewed&&Object.keys(BREWS).every(k=>SAVE.brewed[k])},
+ {id:"a15",t:"Harvest 50 fruit",chk:()=>(SAVE.fruitTotal|0)>=50}];
+/* cosmetic rewards, unlocked by award count — these retint Juice Mode */
+const SKINS=[
+ {id:"classic",n:"Classic",need:0,hue:-1},
+ {id:"citrus", n:"Citrus glow",need:3,hue:48},
+ {id:"berry",  n:"Berry glow",need:6,hue:330},
+ {id:"mint",   n:"Mint glow",need:9,hue:150},
+ {id:"void",   n:"Void glow",need:12,hue:265}];
+const achCount=()=>ACH.reduce((n,a)=>n+(SAVE.ach[a.id]?1:0),0);
+function skinsOwned(){return SKINS.filter(k=>achCount()>=k.need);}
 function checkAch(){ACH.forEach(a=>{if(!SAVE.ach[a.id]&&a.chk()){SAVE.ach[a.id]=1;SAVE.coins+=300;sfx("unlock");}});}
 function ey(c,x,y,r,col){c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill();}
 const CHARS=[
@@ -947,18 +1042,103 @@ const CHARS=[
   for(let i=0;i<7;i++){const a=t/40+i*.9,r=w*.3*(i%3+1)/3;
     ey(c,w*.5+Math.cos(a)*r,h*.5+Math.sin(a)*r*.9,1.4,"rgba(255,255,255,.8)");}
   c.fillStyle="#0B1226";c.beginPath();c.ellipse(w*.5+f*w*.05,h*.44,w*.24,h*.1,0,0,7);c.fill();
-  ey(c,w*.42+f*w*.05,h*.44,w*.05,k.e);ey(c,w*.6+f*w*.05,h*.44,w*.05,k.e);}}
+  ey(c,w*.42+f*w*.05,h*.44,w*.05,k.e);ey(c,w*.6+f*w*.05,h*.44,w*.05,k.e);}},
+/*30*/{id:"Bolt",hex:"#FFE24A",eye:"#0B1226",rar:2,pas:"speed",draw(c,w,h,f,k,t){
+  const z=Math.sin(t/3)*.14;
+  c.fillStyle="rgba(255,240,140,.45)";
+  c.beginPath();c.moveTo(-w*.3,h*.5);c.lineTo(w*.1,h*.3);c.lineTo(w*.02,h*.52);c.lineTo(w*.34,h*.34);
+  c.lineTo(w*.1,h*.72);c.closePath();c.fill();
+  c.fillStyle=k.b;c.beginPath();
+  c.moveTo(w*.5,0);c.lineTo(w,h*.44);c.lineTo(w*.62,h*.44);c.lineTo(w*.84,h);
+  c.lineTo(w*.16,h*.5);c.lineTo(w*.5,h*.5);c.closePath();c.fill();
+  c.fillStyle="rgba(255,255,255,"+(.4+z)+")";
+  c.beginPath();c.moveTo(w*.5,h*.08);c.lineTo(w*.84,h*.42);c.lineTo(w*.56,h*.42);c.closePath();c.fill();
+  ey(c,w*.52+f*w*.06,h*.3,w*.055,k.d);}},
+/*31*/{id:"Frost",hex:"#A8ECFF",eye:"#1B4A66",rar:3,pas:"slow",draw(c,w,h,f,k,t){
+  c.fillStyle=k.b;c.beginPath();c.roundRect(w*.08,h*.16,w*.84,h*.84,w*.26);c.fill();
+  c.strokeStyle="rgba(255,255,255,.85)";c.lineWidth=1.6;
+  for(let i=0;i<3;i++){const a=t/50+i*2.09,cx=w*.5,cy=h*.2;
+    c.beginPath();c.moveTo(cx,cy);
+    c.lineTo(cx+Math.cos(a)*w*.34,cy+Math.sin(a)*w*.34);c.stroke();}
+  c.fillStyle="rgba(255,255,255,.6)";
+  for(let i=0;i<4;i++){const sy=h*(.34+i*.16);
+    c.beginPath();c.moveTo(w*.16,sy);c.lineTo(w*.26,sy+h*.09);c.lineTo(w*.16,sy+h*.06);c.closePath();c.fill();
+    c.beginPath();c.moveTo(w*.84,sy);c.lineTo(w*.74,sy+h*.09);c.lineTo(w*.84,sy+h*.06);c.closePath();c.fill();}
+  ey(c,w*.36+f*w*.05,h*.5,w*.075,k.e);ey(c,w*.64+f*w*.05,h*.5,w*.075,k.e);
+  c.strokeStyle=k.e;c.lineWidth=1.3;c.beginPath();
+  c.moveTo(w*.4,h*.7);c.quadraticCurveTo(w*.5,h*.64,w*.6,h*.7);c.stroke();}},
+/*32*/{id:"Inferno",hex:"#FF5A2B",eye:"#FFE9A0",rar:4,pas:"power",draw(c,w,h,f,k,t){
+  const fl=Math.sin(t/3.4)*.16, fl2=Math.sin(t/2.1+1)*.12;
+  c.fillStyle="rgba(255,190,80,.55)";
+  c.beginPath();c.moveTo(w*.5,-h*.34-fl*h);
+  c.quadraticCurveTo(w*1.02,h*.16,w*.5,h*.44);
+  c.quadraticCurveTo(-w*.02,h*.16,w*.5,-h*.34-fl*h);c.fill();
+  c.fillStyle=k.b;c.beginPath();c.moveTo(w*.5,-h*.1-fl2*h);
+  c.quadraticCurveTo(w*.94,h*.3,w*.78,h*.78);
+  c.quadraticCurveTo(w*.5,h*1.02,w*.22,h*.78);
+  c.quadraticCurveTo(w*.06,h*.3,w*.5,-h*.1-fl2*h);c.fill();
+  c.fillStyle="rgba(255,120,40,.9)";
+  c.beginPath();c.ellipse(w*.5,h*.66,w*.26,h*.2,0,0,7);c.fill();
+  ey(c,w*.36+f*w*.05,h*.44,w*.075,k.e);ey(c,w*.64+f*w*.05,h*.44,w*.075,k.e);
+  ey(c,w*.36+f*w*.05,h*.44,w*.032,"#0B1226");ey(c,w*.64+f*w*.05,h*.44,w*.032,"#0B1226");}},
+/*33*/{id:"Nature",hex:"#7BD86A",eye:"#22402A",rar:3,pas:"harvest",draw(c,w,h,f,k,t){
+  const sw=Math.sin(t/22)*.06;
+  c.strokeStyle="#4E8F3E";c.lineWidth=2.4;
+  c.beginPath();c.moveTo(w*.5,h*.2);c.quadraticCurveTo(w*(.5+sw),h*.06,w*.62,-h*.04);c.stroke();
+  c.fillStyle="#5FBF4F";
+  c.beginPath();c.ellipse(w*.68,-h*.06,w*.16,h*.07,-.6,0,7);c.fill();
+  c.beginPath();c.ellipse(w*.34,h*.06,w*.15,h*.065,.7,0,7);c.fill();
+  c.fillStyle=k.b;c.beginPath();c.ellipse(w*.5,h*.6,w*.46,h*.42,0,0,7);c.fill();
+  c.fillStyle="rgba(255,255,255,.22)";
+  for(let i=0;i<3;i++){c.beginPath();
+    c.ellipse(w*(.3+i*.2),h*(.44+(i%2)*.2),w*.06,h*.045,.4,0,7);c.fill();}
+  ey(c,w*.36+f*w*.05,h*.56,w*.08,"#FFFFFF");ey(c,w*.64+f*w*.05,h*.56,w*.08,"#FFFFFF");
+  ey(c,w*.36+f*w*.05,h*.56,w*.036,k.e);ey(c,w*.64+f*w*.05,h*.56,w*.036,k.e);
+  c.strokeStyle=k.e;c.lineWidth=1.2;c.beginPath();
+  c.arc(w*.5,h*.68,w*.11,.25,Math.PI-.25);c.stroke();}}
 ];
 const COST=[0,900,2200,5000,11000,20000,36000];
 const RAR=[{n:"COMMON",c:"#9FB0C9"},{n:"UNCOMMON",c:"#6FCF7F"},{n:"RARE",c:"#5FA8FF"},
            {n:"EPIC",c:"#B57BE0"},{n:"LEGENDARY",c:"#FFC94A"},{n:"RAINBOW",c:"#FF8AD8"},{n:"MYTHIC",c:"#FF5F7A"}];
-const PASS={none:{t:"balanced"},dash:{t:"dash is longer + recharges 40% faster"},
+/* Hero abilities. Every one is now a change you can feel within seconds,
+   and the active one is named on the HUD. ABIL carries the short HUD
+   label; PASS carries the roster description. */
+const ABIL={
+ none:      {short:"BALANCED"},
+ speed:     {short:"+25% SPEED"},
+ slow:      {short:"ENEMIES SLOWED"},
+ power:     {short:"×2 DAMAGE"},
+ harvest:   {short:"+60% JUICE"},
+ dash:      {short:"LONG DASH"},
+ heal:      {short:"REGEN"},
+ magnet:    {short:"BIG MAGNET"},
+ heart:     {short:"+1 HEART"},
+ rich:      {short:"+50% COINS"},
+ perfect:   {short:"PERFECT×3"},
+ juicelong: {short:"LONG JUICE"},
+ icegrip:   {short:"ICE GRIP"},
+ fireproof: {short:"FIREPROOF"},
+ startjuice:{short:"HALF JUICE START"},
+ slayer:    {short:"×2 DAMAGE"},
+ random:    {short:"WILDCARD"}};
+const PASS={
+ none:{t:"balanced — no tricks"},
+ speed:{t:"25% faster, Juice Mode 40% shorter"},
+ slow:{t:"enemies move 45% slower · immune to ice"},
+ power:{t:"double damage, but floatier to control"},
+ harvest:{t:"+60% juice from everything you collect"},
+ dash:{t:"dash is longer + recharges 40% faster"},
  heal:{t:"regain a heart every 400m"},
- magnet:{t:"double orb magnet"},heart:{t:"start with +1 heart"},rich:{t:"+50% coins, -1 heart"},
- perfect:{t:"perfect landings give 3x juice"},juicelong:{t:"Juice Mode lasts 50% longer"},
- icegrip:{t:"immune to ice"},fireproof:{t:"fireballs cannot hurt you"},
- startjuice:{t:"start each run at 50% juice"},slayer:{t:"deal double damage"},
- random:{t:"random passive every run"}};
+ magnet:{t:"triple orb magnet"},
+ heart:{t:"start with +1 heart"},
+ rich:{t:"+50% coins, -1 heart"},
+ perfect:{t:"perfect landings give 3x juice"},
+ juicelong:{t:"Juice Mode lasts 50% longer"},
+ icegrip:{t:"immune to ice · sure-footed"},
+ fireproof:{t:"fireballs cannot hurt you"},
+ startjuice:{t:"start each run at 50% juice"},
+ slayer:{t:"deal double damage"},
+ random:{t:"random ability every run"}};
 const RUN=CHARS.map(c=>({...c,cost:COST[c.rar]}));
 const byId=id=>RUN.find(r=>r.id===id)||RUN[0];
 const me=()=>byId(SAVE.sel);
@@ -967,8 +1147,22 @@ function bodyOf(r,t){
   if(r.hex==="galaxy") return "hsl("+(250+Math.sin(t/40)*40)+",70%,"+(46+Math.sin(t/17)*12)+"%)";
   return r.hex;
 }
+/* One source of truth for the Juice Mode colour, so brews and cosmetics
+   can retint the whole effect: body, aura, rings, vignette and HUD. */
+function juiceHueBase(){
+  if(BREW==="lightning")return 52;
+  if(BREW==="mega")return 12;
+  const sk=SKINS.find(k=>k.id===(SAVE.skin||"classic"));
+  return sk?sk.hue:-1;                     /* -1 == full rainbow cycle */
+}
+function juiceCol(){
+  const b=juiceHueBase();
+  return b<0?"hsl("+(frame*7%360)+",95%,66%)":"hsl("+(b+Math.sin(frame/14)*14)+",95%,62%)";
+}
 function kitFor(r,t,jm){
-  if(jm)return{b:"hsl("+(t*7%360)+",95%,68%)",d:"#0B1226",e:"#FFFFFF"};
+  if(jm){const b=juiceHueBase();
+    return{b:b<0?"hsl("+(t*7%360)+",95%,68%)":"hsl("+(b+Math.sin(t/14)*14)+",95%,66%)",
+           d:"#0B1226",e:"#FFFFFF"};}
   return{b:bodyOf(r,t),d:"#0B1226",e:r.eye};
 }
 let activePass="none";
@@ -1000,7 +1194,7 @@ let juice=0,juiceMax=480,meter=0,hp=3,hpMax=3,iFr=0,worldI=0;
 let boss=null,nextBoss=350,evt=null,nextEvt=150,healT=0,elites=0,bossWins=0;
 let RMOD=null;                    /* daily modifier snapshot, frozen per run */
 let timeScale=1,slowT=0;
-let doubleJumped=false,dashedOnce=false,bossSeen=0;
+let doubleJumped=false,dashedOnce=false,bossSeen=0,runFruit=0;
 const P={x:80,y:200,w:22,h:30,vx:0,vy:0,grd:false,lg:-999,sx:1,sy:1,face:1,rot:0,air:0,
          jumpsUsed:0,dash:0,dashCd:0,wall:0,lastSafe:{x:80,y:200}};
 
@@ -1222,6 +1416,11 @@ function gen(x){
       }
     }
     if(Math.random()<.08)orbs.push({x:pl.x+pl.w/2,y:y-118-Math.random()*40,ph:Math.random()*6,cry:true,got:false,fall:0});
+    /* fruit for the Juice Lab — rarer than crystals, and visibly different */
+    if(Math.random()<.055){
+      const ks=Object.keys(FRUIT);
+      orbs.push({x:pl.x+pl.w/2,y:y-84-Math.random()*46,ph:Math.random()*6,
+                 cry:false,fruit:ks[Math.floor(Math.random()*ks.length)],got:false,fall:0});}
 
     const rate=(RMOD==="MADNESS"?.5:.26);
     if(d>.06&&Math.random()<rate){const f=spawnFoe(wl,pl,gap,y);if(f)foes.push(f);}
@@ -1258,7 +1457,21 @@ function applyPassives(){
   hpMax=Math.max(1,hpMax);
   hp=hpMax; meter=has("startjuice")?50:0; healT=0;
 }
-function juiceLen(){return Math.round((has("juicelong")?720:480)*(RMOD==="JUICERUSH"?.6:1));}
+/* every juice gain routes through here so Nature's +60% and the Juice Lab
+   brews apply uniformly instead of being sprinkled per call site */
+function gainJuice(n){
+  if(juice>0)return;                       /* frozen while active */
+  let m=1;
+  if(has("harvest"))m*=1.6;
+  if(BREW==="mega")m*=1.25;
+  meter+=n*m;
+}
+function juiceLen(){
+  let n=has("juicelong")?720:480;
+  if(has("speed"))n*=.6;                  /* Bolt: fast but burns juice */
+  if(BREW==="rainbow")n*=1.6;
+  if(RMOD==="JUICERUSH")n*=.6;
+  return Math.round(n);}
 const juiceThresh=()=>RMOD==="JUICERUSH"?60:100;
 
 /* ══════ TUTORIAL (new) ═══════════════════════════════════════════ */
@@ -1293,7 +1506,10 @@ function start(){
   dist=0;orbs_=0;crys=0;combo=0;comboMax=1;comboT=0;jumps=0;perfect=0;
   juice=0;juiceMax=juiceLen();iFr=0;worldI=0;boss=null;evt=null;
   nextBoss=350;nextEvt=150;elites=0;bossWins=0;
-  doubleJumped=false;dashedOnce=false;steerUsed=false;tutI=0;tutHold=0;
+  doubleJumped=false;dashedOnce=false;steerUsed=false;tutI=0;tutHold=0;runFruit=0;
+  /* consume the equipped brew for this run */
+  BREW=SAVE.brew||null;
+  if(BREW){SAVE.brewed=SAVE.brewed||{};SAVE.brewed[BREW]=1;SAVE.brew="";save();}
   timeScale=1;slowT=0;
   applyPassives();
   shake=0;hstop=0;flash=0;ST="play";paused=false;steer=0;prime=null;
@@ -1336,6 +1552,8 @@ function die(reason){
   if(dist>=500)earn+=150;
   const xpG=Math.floor(dist/2)+earn;
   SAVE.coins+=earn;SAVE.totalOrbs+=orbs_;SAVE.xp+=xpG;
+  if(comboMax>(SAVE.maxCombo|0))SAVE.maxCombo=comboMax;
+  SAVE.fruitTotal=(SAVE.fruitTotal|0)+runFruit;
   checkAch();save();paintAll();
   $("dTitle").textContent=reason;$("dDist").textContent=dist;
   $("dStats").textContent="◈"+earn+" · +"+xpG+" XP · ×"+comboMax+" combo"
@@ -1351,15 +1569,15 @@ function togglePause(){
   layers(paused?0:Math.min(1+Math.floor(dist/500),3));
 }
 function damageFoe(f){
-  const dmg=(has("slayer")?2:1)*(juice>0?2:1);      /* Juice Mode now boosts damage */
+  const dmg=((has("slayer")||has("power"))?2:1)*(juice>0?2:1);      /* Juice Mode now boosts damage */
   f.hp-=dmg;f.flashT=8;
-  sfx("stomp");buzz(12);combo++;comboT=frame;meter+=f.el?18:6;
+  sfx("stomp");buzz(12);combo++;comboT=frame;gainJuice(f.el?18:6);
   if(f.hpMax>1)pop(f.x+f.w/2,f.y-6,"-"+dmg,"#FFFFFF",12);
   burst(f.el?18:10,f.x+f.w/2,f.y+f.h/2,5,2,f.el);
   if(f.hp<=0){
     f.dead=14;
     burst(10,f.x+f.w/2,f.y+f.h/2,6,2.2,true);
-    if(f.el){orbs_+=40;meter+=24;flash=.6;sfx("cry");pop(f.x+f.w/2,f.y-18,"+40 ◈","#FFD24A",14);}
+    if(f.el){orbs_+=40;gainJuice(24);flash=.6;sfx("cry");pop(f.x+f.w/2,f.y-18,"+40 ◈","#FFD24A",14);}
   }
 }
 /* ══════ STEP ═════════════════════════════════════════════════════ */
@@ -1403,7 +1621,8 @@ function step(){
   /* ── movement ── */
   const dir=kbd.l||kbd.r?((kbd.r?1:0)-(kbd.l?1:0)):steer;
   if(Math.abs(dir)>.5)steerUsed=true;
-  const spd=SPD*(RMOD==="FAST"?1.34:1);
+  const spd=SPD*(RMOD==="FAST"?1.34:1)*(has("speed")?1.25:1)
+            *(juice>0&&BREW==="lightning"?1.35:1);
   if(P.dash>0){
     P.dash--;P.vx=P.face*DASH_V;P.vy=0;
     if(frame%2===0)spark(P.x+P.w/2,P.y+P.h/2,-P.face*2,(Math.random()-.5)*2,2.4,true);
@@ -1411,7 +1630,7 @@ function step(){
     /* Reads the platform recorded at landing instead of re-scanning the
        whole platform list twice per frame for ice and conveyors. */
     const on=P.grd?P.onPl:null;
-    const ice=!!on&&on.type==="i"&&!has("icegrip");
+    const ice=!!on&&on.type==="i"&&!has("icegrip")&&!has("slow");
     P.vx+=(dir*spd-P.vx)*(ice?.06:.55);
     if(wl.mod==="wind")P.vx+=Math.sin(frame/90)*.4;
     if(evt&&evt.k==="tornado")P.vx+=.85;
@@ -1447,7 +1666,7 @@ function step(){
   if(!jumpHeld&&frame-jumpFrame>6&&P.vy<JV*.55)P.vy=JV*.55;
 
   if(P.dash<=0){
-    const gm=wl.mod==="lowg"?.72:1;
+    const gm=(wl.mod==="lowg"?.72:1)*(has("power")?.86:1);  /* Inferno floats: harder */
     P.vy+=(P.vy>0?G*FALL:G)*gm;
     if(P.wall&&P.vy>2.2&&!P.grd)P.vy=2.2;
     if(P.vy>MAXV)P.vy=MAXV;}
@@ -1477,9 +1696,25 @@ function step(){
           combo++;comboT=frame;if(combo>comboMax)comboMax=combo;
           const off=Math.abs((P.x+P.w/2)-(pl.x+pl.w/2))/(pl.w/2);
           if(off<.3){
-            perfect++;meter+=has("perfect")?12:4;flash=Math.min(flash+.12,.4);
+            perfect++;gainJuice(has("perfect")?12:4);flash=Math.min(flash+.12,.4);
             pop(P.x+P.w/2,pl.y-26,"PERFECT","#FFE9A0",12);
             for(let i=0;i<6;i++)spark(P.x+P.w/2,pl.y,(Math.random()-.5)*3,-Math.random()*2.5,2,true);}
+          /* Juice Mode special: every landing sends out a shockwave that
+             clears nearby enemies. This is what makes Juice Mode feel like
+             a power rather than just a speed buff. */
+          if(juice>0){
+            ring(P.x+P.w/2,pl.y,juiceCol(),7);
+            if(!calm())shake=Math.max(shake,8);
+            sfx("stomp");
+            const R=BREW==="mega"?128:92;
+            for(const f of foes){
+              if(f.dead)continue;
+              const fx=f.x+f.w/2-(P.x+P.w/2),fy=f.y+f.h/2-pl.y;
+              if(fx*fx+fy*fy<R*R)damageFoe(f);}
+            if(boss&&boss.st!=="warn"&&boss.st!=="dead"&&boss.hurt<=0){
+              const bd=Math.hypot(boss.x-(P.x+P.w/2),boss.y-pl.y);
+              if(bd<R)bossDamage(1);}
+          }
           if(pl.type==="b"){P.vy=JV*1.7;P.jumpsUsed=0;sfx("dbl");buzz(16);}
           if(pl.type==="c"&&!pl.life)pl.life=26;
           if(pl.type==="k"&&!pl.life){pl.life=9;sfx("nope");buzz(20);}
@@ -1495,7 +1730,7 @@ function step(){
   if(frame-comboT>130&&combo>0){combo=Math.max(0,combo-1);comboT=frame-110;}
 
   /* ── orbs ── */
-  const mag=(has("magnet")?48:24)*(juice>0?4.2:1);
+  const mag=(has("magnet")?72:24)*(juice>0?4.2:1);
   for(const o of orbs){
     if(o.got)continue;
     if(o.x-camX>W+60||o.x-camX<-60)continue;
@@ -1504,10 +1739,15 @@ function step(){
     if(juice>0&&dd<(mag*3)*(mag*3)){o.x+=dx*.14;o.y+=dy*.14;}
     if(dd<mag*mag){
       o.got=true;
-      const mult=1+Math.floor(combo/8)+(juice>0?2:0);
-      if(o.cry){crys++;orbs_+=10*mult;sfx("cry");buzz(20);if(juice<=0)meter+=26;flash=.5;
+      const mult=(1+Math.floor(combo/8)+(juice>0?2:0))*(juice>0&&BREW==="rainbow"?3:1);
+      if(o.fruit){
+        SAVE.fruit[o.fruit]=(SAVE.fruit[o.fruit]|0)+1;runFruit++;
+        sfx("cry");buzz(18);gainJuice(14);flash=.35;
+        pop(o.x,o.y-12,FRUIT[o.fruit].icon+" "+FRUIT[o.fruit].n.toUpperCase(),FRUIT[o.fruit].col,13);
+        for(let i=0;i<12;i++)spark(o.x,o.y,(Math.random()-.5)*5,(Math.random()-.5)*5,2,true);
+      } else if(o.cry){crys++;orbs_+=10*mult;sfx("cry");buzz(20);if(juice<=0)gainJuice(26);flash=.5;
         pop(o.x,o.y-12,"+"+(10*mult)+" ♦","#9BEFFF",14);}
-      else{orbs_+=mult;sfx("orb",combo);buzz(6);if(juice<=0)meter+=3.4;
+      else{orbs_+=mult;sfx("orb",combo);buzz(6);if(juice<=0)gainJuice(3.4);
         if(mult>1)pop(o.x,o.y-10,"+"+mult,"#FFE9A0",11);}
       combo++;comboT=frame;if(combo>comboMax)comboMax=combo;
       for(let i=0;i<(o.cry?14:7);i++)
@@ -1518,14 +1758,17 @@ function step(){
   else if(meter>=juiceThresh()){
     juiceMax=juiceLen();juice=juiceMax;meter=0;
     sfx("juice");buzz([0,30,30,30,30,60]);flash=1;layers(3);
-    slowT=26;                                   /* brief, smooth bullet-time */
+    slowT=48;hstop=6;                           /* cinematic entrance */
     SAVE.juiceRuns++;bumpMs("juice",1,"add");save();
-    pop(P.x+P.w/2,P.y-40,"JUICE MODE","#FFFFFF",20);
-    burst(30,P.x+P.w/2,P.y+P.h/2,9,2.6,true);
-    ring(P.x+P.w/2,P.y+P.h/2,"#FFE9A0");
+    pop(P.x+P.w/2,P.y-44,"JUICE MODE",juiceCol(),24);
+    pop(P.x+P.w/2,P.y-22,"DOUBLE POINTS","#FFFFFF",12);
+    burst(46,P.x+P.w/2,P.y+P.h/2,11,3,true);
+    ring(P.x+P.w/2,P.y+P.h/2,"#FFE9A0",3.2);
+    ring(P.x+P.w/2,P.y+P.h/2,juiceCol(),6.5);
   }
 
   /* ── monsters ── */
+  const eSlow=has("slow")?.55:1;           /* Frost */
   for(const f of foes){
     if(f.dead){f.dead--;continue;}
     if(f.flashT>0)f.flashT--;
@@ -1534,24 +1777,24 @@ function step(){
     f.ph+=.05;
     switch(f.t){
       case"slime": case"spikey": case"cubebot": case"crystal":{
-        const sp=f.t==="spikey"?1:f.t==="cubebot"?.8:f.t==="crystal"?.34:1;
+        const sp=(f.t==="spikey"?1:f.t==="cubebot"?.8:f.t==="crystal"?.34:1)*eSlow;
         f.x+=f.vx*sp;
         if(f.t==="spikey")f.rot+=f.vx*.09;
         if(f.p){f.y=f.p.y-f.h; if(f.p.gone)f.dead=1;
           if(f.x<f.p.x||f.x+f.w>f.p.x+f.p.w)f.vx*=-1;}
         break;}
       case"eye":
-        f.x+=Math.sign(pdx)*(f.el?1.15:.8);
-        f.y+=Math.sign(pdy)*.45+Math.sin(f.ph)*.5;
+        f.x+=Math.sign(pdx)*(f.el?1.15:.8)*eSlow;
+        f.y+=(Math.sign(pdy)*.45+Math.sin(f.ph)*.5)*eSlow;
         if(--f.blink<-140)f.blink=8;
         break;
       case"batbot":
-        f.x-=1.5*(f.el?1.4:1);
+        f.x-=1.5*(f.el?1.4:1)*eSlow;
         f.y=f.base+Math.sin(f.ph*1.6)*40;
         break;
       case"ghost":
-        f.x+=Math.sign(pdx)*(f.el?1.2:.85);
-        f.y+=Math.sign(pdy)*.6+Math.sin(f.ph)*.3;
+        f.x+=Math.sign(pdx)*(f.el?1.2:.85)*eSlow;
+        f.y+=(Math.sign(pdy)*.6+Math.sin(f.ph)*.3)*eSlow;
         break;
       case"vine":
         /* was: instantly lethal the frame the player came within 74px.
@@ -1694,18 +1937,40 @@ function clearRings(){for(let i=0;i<RMAX;i++)RINGS[i].life=0;}
    `charge` telegraphs the dive with a flashing lane at the player's
    height, so dodging is a read, not a guess.                          */
 
-const BOSS_HP=b=>5+b*2;
+/* ══════ BOSS ROSTER ═════════════════════════════════════════════
+   Four bosses, each with its own silhouette, palette, projectile and
+   minion, rotating by world so a run does not repeat the same fight.
+   Every one runs the same readable 3-phase structure:
+     phase 1  throw obstacles
+     phase 2  spawn minions between attacks
+     phase 3  rage — faster, relentless
+   and the same dodge→punish loop: telegraphed dive, then a stunned
+   window where the glowing core can be stomped.                      */
+const BOSSES={
+  juice:{ name:"JUICE MONSTER", tag:"IT DRINKS THE METER DRY",
+          col:"#7FD46A", col2:"#FF7FB0", shot:"blob", minion:"slime" },
+  flame:{ name:"FLAME DJINN",   tag:"BORN IN THE VOLCANO",
+          col:"#FF9A3B", col2:"#FFE08A", shot:"fire",  minion:"spirit" },
+  rex:{   name:"TERRA REX",     tag:"IT SHAKES THE GROUND",
+          col:"#E2603F", col2:"#FFD9C2", shot:"rock",  minion:"spikey" },
+  eye:{   name:"CYCLOPS EYE",   tag:"IT SEES EVERY STEP",
+          col:"#C77BE0", col2:"#5FE8FF", shot:"beam",  minion:"eye" }};
+const BOSS_ORDER=["juice","flame","rex","eye"];
+const BOSS_HP=b=>6+b*2;
 function bossSpawn(){
   evt=null;nextEvt=dist+240;
-  boss={x:camX+W+150,y:110,vy:0,hp:BOSS_HP(bossWins),max:BOSS_HP(bossWins),
+  /* first boss of a run is always the Juice Monster (it is the one the
+     tutorial and the game's identity point at); after that they rotate */
+  const k=bossWins===0?"juice":BOSS_ORDER[(Math.floor(dist/ZONE)+bossWins)%BOSS_ORDER.length];
+  boss={k,x:camX+W+150,y:110,vy:0,hp:BOSS_HP(bossWins),max:BOSS_HP(bossWins),
         st:"warn",t:0,life:0,hurt:0,cool:80,phase:1,ty:P.y,volley:0,
-        gift:null,hits:0,announced:false};
+        gift:null,drop:null,hits:0,spawned:0};
   sfx("siren");buzz([0,70,60,70]);
   if(!calm())shake=6;
 }
 function bossHitBox(){return{w:64,h:44};}
 function bossDamage(mult){
-  const dmg=(has("slayer")?2:1)*(juice>0?2:1)*(mult||1);
+  const dmg=((has("slayer")||has("power"))?2:1)*(juice>0?2:1)*(mult||1);
   boss.hp-=dmg;boss.hurt=26;boss.hits++;
   sfx("bossHit");buzz(24);
   if(!calm())shake=11;
@@ -1713,8 +1978,16 @@ function bossDamage(mult){
   pop(boss.x,boss.y-30,"-"+dmg,"#FFFFFF",20);
   burst(20,boss.x,boss.y,7,2.6,true);
   ring(boss.x,boss.y,"#FF5F7A",5);
-  if(boss.hp<=boss.max/2&&boss.phase===1&&boss.hp>0){
-    boss.phase=2;pop(boss.x,boss.y-56,"ENRAGED","#FF5F7A",17);sfx("siren");}
+  /* phase thresholds: 2/3 and 1/3 of health */
+  const frac=boss.hp/boss.max;
+  if(boss.hp>0&&boss.phase===1&&frac<=.67){
+    boss.phase=2;pop(boss.x,boss.y-56,"PHASE 2 · MINIONS","#FFD24A",16);sfx("siren");
+    boss.mcool=1;                          /* one arrives immediately */
+    if(!calm())shake=12;}
+  else if(boss.hp>0&&boss.phase===2&&frac<=.34){
+    boss.phase=3;pop(boss.x,boss.y-56,"PHASE 3 · RAGE","#FF3D5F",18);sfx("siren");
+    boss.mcool=1;
+    flash=.7;if(!calm())shake=16;}
   if(boss.hp<=0)bossDie();
 }
 function bossDie(){
@@ -1729,6 +2002,8 @@ function bossDie(){
     const g=locked[Math.floor(Math.random()*locked.length)];
     SAVE.unlocked.push(g.id);boss.gift=g.id;}
   boss.reward=rw;
+  {const ks=Object.keys(FRUIT),k=ks[Math.floor(Math.random()*ks.length)],n=2+Math.floor(Math.random()*3);
+   SAVE.fruit[k]=(SAVE.fruit[k]|0)+n;boss.drop={k,n};}
   checkAch();save();                       /* persist immediately — the
                                               original could lose the
                                               unlock if the tab closed */
@@ -1758,7 +2033,18 @@ function bossStep(){
   if(boss.life>3900){boss.st="retreat";boss.t=0;pop(boss.x,boss.y-40,"TYRANT RETREATS","#A8B8D8",15);return;}
 
   if(boss.hurt>0)boss.hurt--;
-  const p2=boss.phase===2;
+  const BD=BOSSES[boss.k]||BOSSES.juice;
+  const p2=boss.phase>=2, p3=boss.phase>=3;
+  /* phase 2 onward it seeds its own minions between attacks. Driven by the
+     boss's own countdown rather than a global frame modulo, so the cadence
+     is deterministic and cannot be skipped by a short phase. */
+  if(boss.mcool===undefined)boss.mcool=90;
+  if(p2&&boss.st!=="warn"&&boss.mcool>0)boss.mcool--;
+  if(p2&&boss.st!=="warn"&&boss.mcool<=0&&foes.length<14){
+    boss.mcool=p3?130:200;
+    const mk=mkFoe(BD.minion,camX+W-40,150+Math.random()*90,null);
+    mk.vx=-Math.abs(mk.vx||1)*1.1;foes.push(mk);boss.spawned=(boss.spawned|0)+1;
+    pop(camX+W-40,140,"MINION!",BD.col2,12);sfx("nope");}
 
   switch(boss.st){
     case"warn":
@@ -1769,30 +2055,31 @@ function bossStep(){
       boss.x+=((camX+W*.72)-boss.x)*.06;
       boss.y+=((110+Math.sin(frame/34)*26)-boss.y)*.1;
       if(--boss.cool<=0){
-        if(boss.volley>=2){boss.st="charge";boss.t=0;boss.ty=P.y;sfx("siren");}
+        if(boss.volley>=(p3?1:2)){boss.st="charge";boss.t=0;boss.ty=P.y;sfx("siren");}
         else{boss.st="aim";boss.t=0;}
       }
       break;
     case"aim":
       boss.x+=((camX+W*.74)-boss.x)*.05;
       boss.y+=((110+Math.sin(frame/34)*26)-boss.y)*.1;
-      if(boss.t>(p2?32:44)){
+      if(boss.t>(p3?26:p2?32:44)){
         const L=Math.hypot(P.x-boss.x,P.y-boss.y)||1;
-        const ux=(P.x-boss.x)/L,uy=(P.y-boss.y)/L,sp=p2?4.2:3.6;
-        const spread=p2?[-.22,0,.22]:[0];
+        const ux=(P.x-boss.x)/L,uy=(P.y-boss.y)/L,sp=p3?4.8:p2?4.2:3.6;
+        const spread=p3?[-.34,-.11,.11,.34]:p2?[-.22,0,.22]:[0];
         spread.forEach(a=>{
           const cs=Math.cos(a),sn=Math.sin(a);
-          shots.push({x:boss.x,y:boss.y+20,vx:(ux*cs-uy*sn)*sp,vy:(ux*sn+uy*cs)*sp,k:"fire",life:220});});
-        sfx("dash");boss.volley++;boss.st="hover";boss.t=0;boss.cool=p2?52:78;
+          shots.push({x:boss.x,y:boss.y+20,vx:(ux*cs-uy*sn)*sp,vy:(ux*sn+uy*cs)*sp,
+                      k:BD.shot==="rock"?"meteor":"fire",bk:BD.shot,life:220});});
+        sfx("dash");boss.volley++;boss.st="hover";boss.t=0;boss.cool=p3?34:p2?52:78;
       }
       break;
     case"charge":
       boss.x+=((camX+W+70)-boss.x)*.12;
       boss.y+=((boss.ty+P.h/2-B.h/2)-boss.y)*.09;
-      if(boss.t>(p2?42:56)){boss.st="swoop";boss.t=0;sfx("hurt");if(!calm())shake=7;}
+      if(boss.t>(p3?32:p2?42:56)){boss.st="swoop";boss.t=0;sfx("hurt");if(!calm())shake=7;}
       break;
     case"swoop":
-      boss.x-=p2?10.5:8.5;
+      boss.x-=p3?12.5:p2?10.5:8.5;
       boss.y+=((boss.ty+P.h/2-B.h/2)-boss.y)*.12;
       if(frame%3===0)spark(boss.x+30,boss.y,3,(Math.random()-.5)*2,2.4,false);
       if(boss.x<camX-110){
@@ -1812,7 +2099,7 @@ function bossStep(){
       boss.x+=(wantX-boss.x)*.16;
       boss.y+=(wantY-boss.y)*.16;
       if(frame%5===0)spark(boss.x+(Math.random()-.5)*50,boss.y+16,0,-.7,2,true);
-      if(boss.t>(p2?110:155)){boss.st="hover";boss.t=0;boss.cool=60;}
+      if(boss.t>(p3?95:p2?110:155)){boss.st="hover";boss.t=0;boss.cool=60;}
       break;}
   }
 
@@ -2102,7 +2389,18 @@ function draw(){
   for(const o of orbs){
     const x=o.x-camX;if(x<-30||x>W+30||o.got)continue;
     const b=.6+Math.sin(frame/13+o.ph)*.4;
-    if(o.cry){
+    if(o.fruit){
+      const F=FRUIT[o.fruit];
+      if(!lite)glow(GLOW_ORB,x,o.y,.6+b*.25);
+      ctx.save();ctx.translate(x,o.y+Math.sin(frame/16+o.ph)*2);
+      ctx.fillStyle=F.col;ctx.beginPath();ctx.arc(0,0,7,0,7);ctx.fill();
+      ctx.strokeStyle="#0B1226";ctx.lineWidth=1.6;ctx.stroke();
+      ctx.strokeStyle="#4E8F3E";ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(2,-11);ctx.stroke();
+      ctx.fillStyle="#5FBF4F";ctx.beginPath();ctx.ellipse(5,-11,4,2,.5,0,7);ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.55)";ctx.beginPath();ctx.arc(-2.4,-2.4,2,0,7);ctx.fill();
+      ctx.restore();
+    } else if(o.cry){
       if(!lite)glow(GLOW_CRY,x,o.y,.7+b*.2);
       ctx.fillStyle="#9BEFFF";ctx.save();ctx.translate(x,o.y);ctx.rotate(frame/40);
       ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6.5,0);ctx.lineTo(0,9);ctx.lineTo(-6.5,0);ctx.closePath();
@@ -2138,7 +2436,8 @@ function draw(){
   /* ── player ── */
   if(ST==="play"){
     const bob=P.grd&&Math.abs(P.vx)>.6?Math.sin(frame/5)*1.4:(P.grd?Math.sin(frame/38)*.9:0);
-    const pw=P.w*P.sx,ph=P.h*P.sy;
+    const grow=juice>0?1.24:1;             /* transformation while juiced */
+    const pw=P.w*P.sx*grow,ph=P.h*P.sy*grow;
     let gy=null;
     for(const pl of plats){
       if(pl.gone)continue;
@@ -2153,7 +2452,17 @@ function draw(){
     ctx.translate(P.x-camX+(P.w-pw)/2+pw/2,P.y+(P.h-ph)+bob+ph/2);ctx.rotate(P.rot);
     ctx.translate(-pw/2,-ph/2);
     me().draw(ctx,pw,ph,P.face,kit,frame);
-    ctx.restore();ctx.globalAlpha=1;}
+    ctx.restore();
+    if(juice>0){                            /* orbiting aura */
+      const cx=P.x-camX+P.w/2,cy=P.y+P.h/2+bob;
+      ctx.strokeStyle=juiceCol();ctx.lineWidth=2;
+      ctx.globalAlpha=.55+.25*Math.sin(frame/7);
+      ctx.beginPath();ctx.arc(cx,cy,P.w*1.15,0,7);ctx.stroke();
+      ctx.globalAlpha=1;
+      for(let i=0;i<3;i++){const a=frame/9+i*2.09;
+        ctx.fillStyle=juiceCol();
+        ctx.beginPath();ctx.arc(cx+Math.cos(a)*P.w*1.15,cy+Math.sin(a)*P.w*1.15,2.4,0,7);ctx.fill();}}
+    ctx.globalAlpha=1;}
 
   /* ── floating text (drawn in world space, above everything) ── */
   ctx.textAlign="center";
@@ -2233,29 +2542,31 @@ function drawBoss(lite){
 
   ctx.save();
   if(boss.hurt>0&&frame%6<3)ctx.globalAlpha*=.45;
-  if(!lite)glow(stunned?GLOW_GRN:GLOW_RED,bx,by,stunned?1.15:.9);
+  if(!lite)glow(stunned?GLOW_GRN:(boss.k==="flame"?GLOW_HOT:GLOW_RED),bx,by,stunned?1.15:1.05);
 
   const flap=Math.sin(frame/(boss.st==="swoop"?3:stunned?16:9))*16;
   const hit=boss.hurt>20;
-  const wing=hit?"#FFFFFF":"#7A2438",body=hit?"#FFFFFF":(stunned?"#8E5A3C":"#C33B52");
-  ctx.fillStyle=wing;
-  ctx.beginPath();ctx.moveTo(bx,by);ctx.quadraticCurveTo(bx-56,by-flap-28,bx-78,by+8);
-  ctx.quadraticCurveTo(bx-42,by+12,bx,by+14);ctx.closePath();ctx.fill();OUT(ctx,2.4);
-  ctx.beginPath();ctx.moveTo(bx,by);ctx.quadraticCurveTo(bx+56,by-flap-28,bx+78,by+8);
-  ctx.quadraticCurveTo(bx+42,by+12,bx,by+14);ctx.closePath();ctx.fill();OUT(ctx,2.4);
-  ctx.fillStyle=body;
-  ctx.beginPath();ctx.ellipse(bx,by,28,21,0,0,7);ctx.fill();OUT(ctx,2.4);
-  ctx.fillStyle="#2A0D14";
-  ctx.beginPath();ctx.moveTo(bx-26,by-6);ctx.lineTo(bx-44,by-16);ctx.lineTo(bx-24,by+4);ctx.closePath();ctx.fill();
+  const BD=BOSSES[boss.k]||BOSSES.juice;
+  /* Keep each boss's own colour while stunned — the green core, ring and
+     arrow already carry "hittable", and washing the body out was hiding
+     the per-boss identity at the moment the player looks closest. */
+  const body=hit?"#FFFFFF":BD.col;
+  const trim=hit?"#FFFFFF":BD.col2;
+  bossBody(boss.k,bx,by,body,trim,flap,stunned);
 
   /* the weak point — the whole point of the redesign is that the player
+     can see where and when to hit */  /* the weak point — the whole point of the redesign is that the player
      can see where and when to hit */
+  const oneEye=boss.k==="eye"||boss.k==="juice";
   if(stunned){
     const pu=.7+.3*Math.sin(frame/4);
     ctx.fillStyle="rgba(111,231,140,"+pu+")";
     ctx.beginPath();ctx.arc(bx,by-2,10,0,7);ctx.fill();
     ctx.strokeStyle="#EAFFE9";ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by-2,13+pu*3,0,7);ctx.stroke();
-    EYE(ctx,bx-9,by-5,4,.25,0);EYE(ctx,bx+9,by-5,4,.25,0);   /* dazed eyes */
+    if(oneEye)EYE(ctx,bx,by-6,5,.22,0);
+    else{EYE(ctx,bx-9,by-5,4,.25,0);EYE(ctx,bx+9,by-5,4,.25,0);}
+  } else if(oneEye){
+    EYE(ctx,bx,boss.k==="eye"?by:by-8,boss.k==="eye"?13:8,1,-2.2);
   } else {
     EYE(ctx,bx-9,by-5,5,1,-1.6);EYE(ctx,bx+9,by-5,5,1,-1.6);
   }
@@ -2276,14 +2587,73 @@ function drawBoss(lite){
   }
   ctx.globalAlpha=1;
 }
+/* ══════ BOSS BODIES ══════════════════════════════════════════════
+   One painter per boss so each reads as a different creature at a
+   glance — silhouettes taken from the reference sheet. */
+function bossBody(k,bx,by,body,trim,flap,stunned){
+  if(!BOSSES[k])k="juice";
+  ctx.fillStyle=body;
+  if(k==="juice"){
+    /* tentacle-mouthed blob: fat body, lolling tongue, one big eye */
+    ctx.beginPath();ctx.ellipse(bx,by,34,26,0,0,7);ctx.fill();OUT(ctx,2.4);
+    ctx.fillStyle=trim;
+    for(let i=0;i<4;i++){const a=frame/14+i*1.57,tx=bx+Math.cos(a)*30,ty=by+18+Math.sin(a)*6;
+      ctx.beginPath();ctx.ellipse(tx,ty,7,4.4,a,0,7);ctx.fill();}
+    ctx.fillStyle="#3A1526";
+    ctx.beginPath();ctx.ellipse(bx,by+9,17,9,0,0,7);ctx.fill();
+    ctx.fillStyle=trim;
+    ctx.beginPath();ctx.ellipse(bx+Math.sin(frame/11)*4,by+15,7,5,0,0,7);ctx.fill();
+    ctx.fillStyle="#FFFFFF";
+    for(let i=0;i<4;i++){const tx=bx-12+i*8;
+      ctx.beginPath();ctx.moveTo(tx,by+4);ctx.lineTo(tx+4,by+11);ctx.lineTo(tx+8,by+4);ctx.closePath();ctx.fill();}
+  } else if(k==="flame"){
+    /* flame elemental: licking crown of fire */
+    const f1=Math.sin(frame/3.6)*7,f2=Math.sin(frame/2.4+1)*5;
+    ctx.beginPath();
+    ctx.moveTo(bx,by-40-f1);
+    ctx.quadraticCurveTo(bx+34,by-6,bx+22,by+22);
+    ctx.quadraticCurveTo(bx,by+30,bx-22,by+22);
+    ctx.quadraticCurveTo(bx-34,by-6,bx,by-40-f1);ctx.fill();OUT(ctx,2.2);
+    ctx.fillStyle=trim;
+    ctx.beginPath();
+    ctx.moveTo(bx,by-20-f2);
+    ctx.quadraticCurveTo(bx+16,by+2,bx,by+18);
+    ctx.quadraticCurveTo(bx-16,by+2,bx,by-20-f2);ctx.fill();
+  } else if(k==="rex"){
+    /* horned brute: heavy jaw, spined back */
+    ctx.beginPath();ctx.roundRect(bx-32,by-16,64,38,12);ctx.fill();OUT(ctx,2.4);
+    ctx.fillStyle=body;
+    for(let i=0;i<4;i++){ctx.beginPath();
+      ctx.moveTo(bx-24+i*15,by-16);ctx.lineTo(bx-17+i*15,by-32);ctx.lineTo(bx-10+i*15,by-16);
+      ctx.closePath();ctx.fill();}
+    ctx.fillStyle="#2A0D14";
+    ctx.beginPath();ctx.roundRect(bx-22,by+4,44,13,5);ctx.fill();
+    ctx.fillStyle="#FFFFFF";
+    for(let i=0;i<5;i++){const tx=bx-19+i*9;
+      ctx.beginPath();ctx.moveTo(tx,by+4);ctx.lineTo(tx+4,by+12);ctx.lineTo(tx+8,by+4);ctx.closePath();ctx.fill();}
+    ctx.fillStyle=trim;
+    ctx.beginPath();ctx.moveTo(bx-32,by-10);ctx.lineTo(bx-46,by-24);ctx.lineTo(bx-28,by-2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(bx+32,by-10);ctx.lineTo(bx+46,by-24);ctx.lineTo(bx+28,by-2);ctx.closePath();ctx.fill();
+  } else {
+    /* cyclops eye: floating orb ringed by lashes */
+    ctx.beginPath();ctx.arc(bx,by,28,0,7);ctx.fill();OUT(ctx,2.4);
+    ctx.strokeStyle=trim;ctx.lineWidth=3;ctx.lineCap="round";
+    for(let i=0;i<8;i++){const a=i*.785+frame/60;
+      ctx.beginPath();
+      ctx.moveTo(bx+Math.cos(a)*28,by+Math.sin(a)*28);
+      ctx.lineTo(bx+Math.cos(a)*(40+flap*.2),by+Math.sin(a)*(40+flap*.2));ctx.stroke();}
+    ctx.lineCap="butt";
+  }
+}
+
 /* ══════ HUD ══════════════════════════════════════════════════════
-   Everything is now positioned relative to the play band (WY … WY+WH).
-   The original used raw canvas coordinates, and in portrait the canvas
-   is up to 1300px tall for a 450px band — so the hearts, score, dash
-   meter and boss health bar all sat far outside the action, marooned in
-   the letterbox. */
+   Anchored to the TOP OF THE SCREEN, per the brief. (An earlier pass
+   pinned it to the play band instead, which on a tall phone parked the
+   whole cluster in the middle of empty sky.) safeTop keeps it clear of
+   the notch. Coach text and the steer indicator stay near the band,
+   where the player is actually looking. */
 function drawHUD(){
-  const T=WY, Bm=WY+WH, wl=worldAt(dist);
+  const T=safeTop+4, Bm=WY+WH, wl=worldAt(dist);
 
   for(let i=0;i<hpMax;i++){
     ctx.fillStyle=i<hp?"#FF6B7A":"rgba(255,255,255,.16)";
@@ -2292,11 +2662,17 @@ function drawHUD(){
     ctx.bezierCurveTo(hx0+13,hy-2,hx0+17,hy+4,hx0+7,hy+12);ctx.fill();}
   ctx.font=F_HUD;
   ctx.fillStyle="rgba(255,255,255,.95)";ctx.fillText(dist+"m",16,T+52);
+  /* rows stack from a running cursor so an absent line never leaves a hole */
+  let ry=T+70;
   ctx.font=F_MONO;
-  ctx.fillStyle="rgba(255,201,74,.95)";ctx.fillText("◈ "+orbs_+(crys?"  ♦ "+crys:""),16,T+70);
-  ctx.fillStyle="rgba(168,184,216,.7)";ctx.fillText(wl.n,16,T+86);
-  if(RMOD){ctx.font=F_SM;ctx.fillStyle="rgba(255,201,74,.75)";
-    ctx.fillText("DAILY · "+modText().toUpperCase(),16,T+102);}
+  ctx.fillStyle="rgba(255,201,74,.95)";ctx.fillText("◈ "+orbs_+(crys?"  ♦ "+crys:""),16,ry);ry+=16;
+  ctx.fillStyle="rgba(168,184,216,.7)";ctx.fillText(wl.n,16,ry);ry+=16;
+  ctx.font=F_SM;
+  if(runFruit){ctx.fillStyle="rgba(155,239,255,.9)";ctx.fillText("FRUIT "+runFruit,16,ry);ry+=14;}
+  if(BREW){ctx.fillStyle=BREWS[BREW].col;
+    ctx.fillText(BREWS[BREW].icon+" "+BREWS[BREW].n.toUpperCase(),16,ry);ry+=14;}
+  if(RMOD){ctx.fillStyle="rgba(255,201,74,.75)";
+    ctx.fillText("DAILY · "+modText().toUpperCase(),16,ry);ry+=14;}
 
   /* juice meter */
   const bw=Math.min(180,W*.22),bx=W/2-bw/2;
@@ -2307,7 +2683,7 @@ function drawHUD(){
     const k=clamp(juice/juiceMax,0,1);           /* was hard-coded /480 — with the
                                                     juicelong passive the bar drew
                                                     150% wide and overflowed */
-    ctx.fillStyle=juice<90&&frame%8<4?"#FFFFFF":"hsl("+(frame*7%360)+",95%,62%)";
+    ctx.fillStyle=juice<90&&frame%8<4?"#FFFFFF":juiceCol();
     ctx.fillRect(bx,T+14,bw*k,8);
     ctx.font=F_TAG;ctx.fillStyle="#FFFFFF";
     ctx.fillText("JUICE MODE  "+(juice/60).toFixed(1)+"s",W/2,T+36);
@@ -2321,58 +2697,74 @@ function drawHUD(){
     ctx.fillText("JUICE "+Math.floor(pc*100)+"%"+(th!==100?"  · RUSH":""),W/2,T+34);}
   ctx.textAlign="left";
 
-  /* dash */
+  /* Dash, ability and combo live at the bottom-right of the band. They were
+     briefly moved to the top, where they collided with the pause button and
+     drifted away from the player's eyeline. */
   const dr=P.dashCd>0?1-P.dashCd/(DASH_CD*(has("dash")?.6:1)):1;
   ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(W-71,Bm-23,54,6);
   ctx.fillStyle=P.dashCd>0?"rgba(168,184,216,.4)":"rgba(111,207,127,.95)";
   ctx.fillRect(W-70,Bm-22,52*clamp(dr,0,1),4);
-  ctx.font=F_SM;ctx.fillStyle=P.dashCd>0?"rgba(168,184,216,.6)":"rgba(111,207,127,.9)";
-  ctx.fillText(P.dashCd>0?"DASH":"DASH READY",W-70,Bm-28);
+  ctx.font=F_SM;ctx.textAlign="right";
+  ctx.fillStyle=P.dashCd>0?"rgba(168,184,216,.6)":"rgba(111,207,127,.9)";
+  ctx.fillText(P.dashCd>0?"DASH":"DASH READY",W-18,Bm-28);
+
+  /* the equipped hero ability, named so it is felt rather than buried */
+  if(ABIL[activePass]){
+    ctx.fillStyle="rgba(168,184,216,.7)";
+    ctx.fillText(me().id.toUpperCase()+" · "+ABIL[activePass].short,W-18,Bm-42);}
+  ctx.textAlign="left";
 
   if(combo>1){
     const c=Math.min(combo,30)/30;ctx.textAlign="right";
     ctx.font="700 21px 'Space Grotesk',system-ui,sans-serif";
     ctx.fillStyle="rgb(255,"+(201+c*40)+","+(74+c*90)+")";
-    ctx.fillText("×"+combo,W-16,T+34);
-    ctx.fillStyle="rgba(255,255,255,.15)";ctx.fillRect(W-126,T+42,110,5);
-    ctx.fillStyle="#FFC94A";ctx.fillRect(W-126,T+42,110*Math.max(0,1-(frame-comboT)/130),5);
+    ctx.fillText("×"+combo,W-18,Bm-58);
     ctx.textAlign="left";}
 
-  /* ── boss HUD ── */
+  /* ── boss HUD — hearts + bar at the TOP, per the brief ── */
   if(boss){
+    const BC=WY+WH*.42;                  /* banners stay on the band, at eye level */
     ctx.textAlign="center";
     if(boss.st==="warn"){
-      ctx.fillStyle="rgba(255,95,122,"+(.14+.16*Math.sin(frame/4))+")";ctx.fillRect(0,T,W,WH);
-      ctx.fillStyle="#FFE9A0";ctx.font="700 30px 'Space Grotesk',system-ui,sans-serif";
-      ctx.fillText("⚠  SKY TYRANT INCOMING",W/2,T+WH*.42);
-      if(SAVE.bossKills<1){
-        ctx.font=F_MONO;ctx.fillStyle="rgba(255,255,255,.9)";
-        ctx.fillText("DODGE THE DIVE — THEN STOMP THE GREEN CORE",W/2,T+WH*.42+26);}
+      ctx.fillStyle="rgba(255,95,122,"+(.14+.16*Math.sin(frame/4))+")";ctx.fillRect(0,WY,W,WH);
+      ctx.fillStyle="#FFE9A0";ctx.font="700 clamp(18px,4.4vw,30px) 'Space Grotesk',system-ui,sans-serif";
+      ctx.fillText("⚠  "+(BOSSES[boss.k]||BOSSES.juice).name+" INCOMING",W/2,BC);
+      ctx.font=F_MONO;ctx.fillStyle="rgba(255,255,255,.9)";
+      ctx.fillText((BOSSES[boss.k]||BOSSES.juice).tag,W/2,BC+26);
+      if(SAVE.bossKills<1){ctx.fillStyle="#6FCF7F";
+        ctx.fillText("DODGE THE DIVE — THEN STOMP THE GLOWING CORE",W/2,BC+46);}
     } else if(boss.st==="dead"){
       if(boss.t>60){
-        ctx.fillStyle="#FFE9A0";ctx.font="700 26px 'Space Grotesk',system-ui,sans-serif";
-        ctx.fillText("SKY TYRANT DEFEATED",W/2,T+WH*.40);
+        ctx.fillStyle="#FFE9A0";ctx.font="700 clamp(17px,4vw,26px) 'Space Grotesk',system-ui,sans-serif";
+        ctx.fillText((BOSSES[boss.k]||BOSSES.juice).name+" DEFEATED",W/2,BC);
         ctx.font=F_MONO;ctx.fillStyle="rgba(255,255,255,.9)";
-        ctx.fillText("+"+(boss.reward||0)+" ◈",W/2,T+WH*.40+24);
+        ctx.fillText("+"+(boss.reward||0)+" ◈",W/2,BC+24);
         if(boss.gift){ctx.fillStyle="#6FCF7F";
-          ctx.fillText("RUNNER UNLOCKED · "+boss.gift.toUpperCase(),W/2,T+WH*.40+42);}}
+          ctx.fillText("HERO UNLOCKED · "+boss.gift.toUpperCase(),W/2,BC+42);}
+        if(boss.drop){ctx.fillStyle="#9BEFFF";
+          ctx.fillText("+"+boss.drop.n+" "+FRUIT[boss.drop.k].icon+" "+FRUIT[boss.drop.k].n.toUpperCase(),W/2,BC+60);}}
     } else if(boss.st!=="retreat"){
-      const bw2=Math.min(260,W*.36),bx2=W/2-bw2/2,y2=Bm-34;
-      ctx.fillStyle="rgba(0,0,0,.45)";ctx.fillRect(bx2-2,y2-2,bw2+4,11);
-      ctx.fillStyle="rgba(255,255,255,.14)";ctx.fillRect(bx2,y2,bw2,7);
-      /* white "ghost" chunk trails the drain so each hit is legible */
-      if(boss.hurt>0){ctx.fillStyle="rgba(255,255,255,.7)";
-        ctx.fillRect(bx2,y2,bw2*Math.max(0,(boss.hp+1)/boss.max),7);}
-      ctx.fillStyle=boss.phase===2?"#FF3D5F":"#FF5F7A";
-      ctx.fillRect(bx2,y2,bw2*Math.max(0,boss.hp/boss.max),7);
-      /* segment ticks: one per remaining hit, so "how much damage" is countable */
-      ctx.fillStyle="rgba(11,18,38,.55)";
-      for(let i=1;i<boss.max;i++)ctx.fillRect(bx2+bw2*i/boss.max-1,y2,1.5,7);
-      ctx.font=F_SM;ctx.fillStyle="rgba(255,255,255,.85)";
-      ctx.fillText("SKY TYRANT  "+Math.max(0,boss.hp)+"/"+boss.max+(boss.phase===2?"  ·  ENRAGED":""),W/2,y2-6);
+      const BH=BOSSES[boss.k]||BOSSES.juice;
+      /* health as hearts, exactly as sketched, with a bar behind for
+         partial damage; both at the top of the screen */
+      const n=boss.max,per=Math.min(22,Math.max(11,(W*.5)/n));
+      const tw=n*per, tx=W/2-tw/2, hy=T+72;
+      ctx.font=F_SM;ctx.fillStyle="rgba(255,255,255,.9)";
+      ctx.fillText(BH.name+"   PHASE "+boss.phase+"/3",W/2,hy-8);
+      for(let i=0;i<n;i++){
+        const full=i<boss.hp, hx0=tx+i*per, cy=hy+7;
+        ctx.fillStyle=full?(boss.phase===3?"#FF3D5F":BH.col):"rgba(255,255,255,.14)";
+        if(full&&boss.hurt>0&&frame%6<3)ctx.fillStyle="#FFFFFF";
+        ctx.beginPath();
+        ctx.moveTo(hx0+per*.42,cy+per*.30);
+        ctx.bezierCurveTo(hx0-per*.06,cy+per*.02,hx0+per*.08,cy-per*.16,hx0+per*.42,cy+per*.06);
+        ctx.bezierCurveTo(hx0+per*.76,cy-per*.16,hx0+per*.90,cy+per*.02,hx0+per*.42,cy+per*.30);
+        ctx.fill();}
+      if(boss.phase===3){ctx.font=F_TAG;ctx.fillStyle="rgba(255,61,95,"+(.6+.4*Math.sin(frame/5))+")";
+        ctx.fillText("RAGE",W/2,hy+34);}
       if(boss.st==="stun"&&SAVE.bossKills<1){
         ctx.font=F_MONO;ctx.fillStyle="#6FCF7F";
-        ctx.fillText("NOW! JUMP ON IT",W/2,T+WH*.22);}
+        ctx.fillText("NOW! JUMP ON IT",W/2,WY+WH*.24);}
     }
     ctx.textAlign="left";}
 
@@ -2380,7 +2772,7 @@ function drawHUD(){
     ctx.textAlign="center";ctx.font=F_HUD;
     ctx.fillStyle="rgba(255,233,160,"+Math.min(1,(150-(frame-evt.t0))/60)+")";
     ctx.fillText(({crystal:"CRYSTAL RAIN",meteor:"METEOR SHOWER",ufo:"UFO SIGHTING",
-      tornado:"TORNADO",dragon:"DRAGON PASSING",rainbow:"RAINBOW BRIDGE"})[evt.k],W/2,T+72);
+      tornado:"TORNADO",dragon:"DRAGON PASSING",rainbow:"RAINBOW BRIDGE"})[evt.k],W/2,WY+64);
     ctx.textAlign="left";}
 
   /* tutorial coach (new) */
@@ -2483,19 +2875,60 @@ function paintRoster(){
       save();rosterDirty=true;paintAll();};
     r.appendChild(d);});
   rosterDirty=false;}
+function paintLab(){
+  $("labFruit").textContent=Object.keys(FRUIT)
+    .map(k=>FRUIT[k].icon+" "+(SAVE.fruit[k]|0)).join("   ");
+  const box=$("labList");box.innerHTML="";
+  Object.keys(BREWS).forEach(k=>{
+    const B=BREWS[k],ok=canBrew(k),eq=SAVE.brew===k;
+    const el=document.createElement("div");
+    el.className="it"+(eq?" done":"");
+    el.style.cursor="pointer";
+    el.innerHTML='<span></span><span class="v"></span><span class="track" style="height:auto;background:none">'+
+                 '<span style="font-family:var(--mono);font-size:8.5px;color:var(--haze)"></span></span>';
+    el.children[0].textContent=B.icon+"  "+B.n;
+    el.children[1].textContent=eq?"EQUIPPED":Object.keys(B.cost).map(f=>FRUIT[f].icon+B.cost[f]).join(" ");
+    el.children[2].firstChild.textContent=B.t;
+    if(!ok&&!eq)el.style.opacity=".55";
+    el.onclick=()=>{if(eq){sfx("nope");return;}doBrew(k);};
+    box.appendChild(el);});
+  $("labEquip").textContent=SAVE.brew
+    ? "NEXT RUN: "+BREWS[SAVE.brew].icon+" "+BREWS[SAVE.brew].n.toUpperCase()
+    : "No juice brewed — Juice Mode runs standard";
+  const sk=$("labSkins");sk.innerHTML="";
+  SKINS.forEach(k=>{
+    const owned=achCount()>=k.need, on=(SAVE.skin||"classic")===k.id;
+    const l=document.createElement("label");
+    l.className="chip";l.style.cursor="pointer";
+    if(on){l.style.color="var(--amber)";l.style.borderColor="rgba(255,201,74,.45)";
+           l.style.background="rgba(255,201,74,.07)";}
+    if(!owned)l.style.opacity=".45";
+    const dot=document.createElement("span");dot.className="dot";
+    if(k.hue>=0){dot.style.background="hsl("+k.hue+",95%,62%)";dot.style.borderColor="transparent";}
+    else dot.style.background="linear-gradient(90deg,#FF5F7A,#FFE24A,#6FCF7F,#5FA8FF)";
+    l.appendChild(dot);
+    l.appendChild(document.createTextNode(owned?k.n:k.n+" · "+k.need+" awards"));
+    l.onclick=()=>{
+      if(!owned){sfx("nope");snack("Earn "+k.need+" awards to unlock "+k.n);return;}
+      SAVE.skin=k.id;sfx("click");save();paintLab();};
+    sk.appendChild(l);});
+}
 function paintAll(){
   const L=level();
   [["xpTxt","xpFill"],["xpTxt2","xpFill2"]].forEach(([t,f])=>{
     $(t).textContent="◈ "+SAVE.coins+" · LV"+L.lv+" · "+L.x+"/"+L.need+" XP · BEST "+SAVE.best+"m"
-      +" · "+SAVE.unlocked.length+"/"+RUN.length+" RUNNERS";
+      +" · "+SAVE.unlocked.length+"/"+RUN.length+" HEROES";
     $(f).style.width=(L.x/L.need*100)+"%";});
   const ml=$("modLine");
   if(OPT.mod&&MOD){ml.style.display="block";ml.textContent="⚑ TODAY: "+modText()+" — toggle in pause menu";}
   else ml.style.display="none";
   paintMissions();paintAch();
+  const lb=$("labBtnNote");
+  if(lb)lb.textContent="";
+  if($("ovLab").classList.contains("show"))paintLab();
   if(rosterDirty&&$("ovChars").classList.contains("show"))paintRoster();}
 function show(id){
-  ["ovStart","ovDead","ovChars","ovAch","ovPause"].forEach(o=>$(o).classList.remove("show"));
+  ["ovStart","ovDead","ovChars","ovAch","ovLab","ovPause"].forEach(o=>$(o).classList.remove("show"));
   if(id)$(id).classList.add("show");}
 
 function guideText(){
@@ -2514,6 +2947,8 @@ $("bAgain").onclick=()=>{sfx("click");start();};
 $("bChars").onclick=()=>{sfx("click");show("ovChars");paintRoster();};
 $("bChars2").onclick=()=>{sfx("click");show("ovChars");paintRoster();};
 $("bAch").onclick=()=>{sfx("click");show("ovAch");};
+$("bLab").onclick=()=>{sfx("click");show("ovLab");paintLab();};
+$("bBack3").onclick=()=>{sfx("click");show(ST==="dead"?"ovDead":"ovStart");};
 $("bBack").onclick=()=>{sfx("click");show(ST==="dead"?"ovDead":"ovStart");};
 $("bBack2").onclick=()=>{sfx("click");show(ST==="dead"?"ovDead":"ovStart");};
 $("bResume").onclick=()=>togglePause();
@@ -2578,14 +3013,25 @@ if(/[?&]debug=1\b/.test(location.search)){
       elites,bossWins,RMOD,activePass,autoLite,timeScale,
       plats:plats.length,orbs:orbs.length,foes:foes.length,shots:shots.length,
       px:P.x,py:P.y,pvx:P.vx,pvy:P.vy,grd:P.grd,dashCd:P.dashCd,
-      boss:boss?{st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
-                 life:boss.life,hits:boss.hits,gift:boss.gift}:null,
+      boss:boss?{k:boss.k,st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
+                 life:boss.life,hits:boss.hits,gift:boss.gift,drop:boss.drop,spawned:boss.spawned}:null,
+      BREW,runFruit,bosses:Object.keys(BOSSES),brews:Object.keys(BREWS),fruits:Object.keys(FRUIT),
+      abil:ABIL[activePass]?ABIL[activePass].short:"?",
+      safeTop,WY,WH,
       audio:AC?AC.state:"none", tut:{i:tutI,done:SAVE.tut},
       save:JSON.parse(JSON.stringify(SAVE))
     };},
     fillJuice(){meter=100;},
     forceBoss(){nextBoss=0;boss=null;},
     restart(){start();},
+    setHero(id){if(!SAVE.unlocked.includes(id))SAVE.unlocked.push(id);SAVE.sel=id;start();},
+    giveFruit(n){for(const k in SAVE.fruit)SAVE.fruit[k]=n;save();},
+    brew(k){doBrew(k);},
+    bossTo(hp){if(boss){boss.hp=hp;boss.hurt=0;bossDamage(0.0001);}},
+    setBossKind(k){if(boss)boss.k=k;},
+    spawnKind(k){nextBoss=0;boss=null;bossStep();if(boss&&BOSSES[k])boss.k=k;},
+    probeGain(n){const b=meter;meter=0;gainJuice(n);const d=meter;meter=b;return +d.toFixed(3);},
+    probeDamage(){return ((has("slayer")||has("power"))?2:1)*(juice>0?2:1);},
     keepAlive(){hp=hpMax;iFr=Math.max(iFr,4);},   /* heal only — never restarts */
     setDist(m){P.x=m*10;camX=P.x-W*.31;dist=m;edgeX=gen(camX+W);},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
