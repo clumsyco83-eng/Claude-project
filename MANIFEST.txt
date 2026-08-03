@@ -1,0 +1,56 @@
+JUMP JUICE ADVENTURE — transfer package
+=======================================
+Branch : claude/jump-juice-polish-balance-eeikjx
+HEAD   : 44895e7
+Repo   : clumsyco83-eng/Claude-project
+
+READ START-HERE.md FIRST. It is the complete cold-start handoff.
+
+SOURCE (edit this and nothing else)
+  jumpjuice.html ................ the entire game, canonical source
+
+GENERATED (never edit — rebuilt by the commands below)
+  split/index.html .............. from: node test/split.mjs
+  split/jumpjuice.css ..........  "
+  split/boot.js ................  "
+  split/jumpjuice.js ...........  "
+  dist/jumpjuice-artifact.html .. from: node test/build-artifact.mjs
+  dist/hosted-sim.html .......... hosting simulation harness
+  split/README.md ............... EXCEPTION - hand-maintained
+
+DOCUMENTATION
+  START-HERE.md ................. master handoff — read first
+  README.md ..................... run/build/test, balance tables, save format
+  REPORT.md ..................... full bug log across all three passes
+  HANDOFF.md .................... systems overview + gotchas
+  AUDIT.md ...................... 37-system checklist
+  MANIFEST.txt .................. this file
+
+TESTS AND BUILD SCRIPTS
+  test/split.mjs ................ build: jumpjuice.html -> split/
+  test/build-artifact.mjs ....... build: -> dist/jumpjuice-artifact.html
+  test/smoke.mjs ................ 60 assertions x 5 device profiles
+  test/features.mjs ............. 36 — heroes, bosses, Juice Lab, awards
+  test/hostile.mjs .............. 19 crippled-browser boot cases
+  test/balance.mjs .............. 82 — the balance/systems contract
+  test/genvalidate.mjs .......... 10k + 10k procedural fairness sweep
+  test/economy.mjs .............. coins/min + time-to-unlock simulation
+  test/soak.mjs ................. long-run memory/stability soak
+  test/shots.mjs ................ screenshot capture
+
+SCREENSHOTS
+  shots3/ ....................... CURRENT state (post-polish-pass)
+  shots/, shots2/ ............... earlier passes, kept for reference
+
+QUICK START
+  node test/split.mjs && node test/smoke.mjs --device=iphone
+
+TEST ENVIRONMENT REQUIRED
+  Playwright : /opt/node22/lib/node_modules/playwright
+  Chromium   : /opt/pw-browsers/chromium-1194/chrome-linux/chrome
+  If those paths differ, update executablePath + the import in test/*.mjs
+
+STATUS
+  All suites pass on both builds. 304,356 generated platforms validated.
+  30-min soak: heap flat, 0 errors.
+  NOT verified on real iPhone/Android hardware — emulation only.
