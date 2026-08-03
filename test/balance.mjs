@@ -324,6 +324,29 @@ const beat = await page3.evaluate(async () => {
 });
 ok("a boss can actually be defeated", beat.killed, beat);
 
+/* ─────────────────────────── audio ──────────────────────────────── */
+console.log("\nAudio");
+const audio = await page3.evaluate(async () => {
+  await new Promise(r => setTimeout(r, 200));
+  const keys = JJA_DEBUG.sfxKeys();
+  const threw = [];
+  for (const k of keys) { try { JJA_DEBUG.sfx(k); } catch (e) { threw.push(k); } }
+  return { keys, threw, state: JJA_DEBUG.state.audio };
+});
+ok("every sound cue fires without throwing", audio.threw.length === 0, audio.threw);
+["juiceExt", "juiceLast", "bossWeak", "bossFlee"].forEach(k =>
+  ok("new cue exists: " + k, audio.keys.includes(k)));
+const volPersist = await page3.evaluate(async () => {
+  const el = document.getElementById("oVol");
+  el.value = 15; el.dispatchEvent(new Event("input", { bubbles: true }));
+  await new Promise(r => setTimeout(r, 150));
+  return { live: JJA_DEBUG.state.opt.vol,
+           saved: JSON.parse(localStorage.getItem("jja2")).opt.vol };
+});
+ok("volume change is applied and persisted",
+   Math.abs(volPersist.live - 0.15) < 1e-9 && Math.abs(volPersist.saved - 0.15) < 1e-9,
+   volPersist);
+
 console.log("\njs errors: " + (jsErrors.length ? jsErrors.join(" | ") : "none"));
 ok("no JS errors", jsErrors.length === 0, jsErrors[0]);
 

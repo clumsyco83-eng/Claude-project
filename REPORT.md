@@ -390,10 +390,31 @@ New passives with real mechanics: `firelord`, `aircontrol`, `shield`,
 | `smoke.mjs` × 5 device profiles | 60/60 each, 300 total |
 | `features.mjs` | 36/36 (2 assertions updated for Inferno's new identity) |
 | `hostile.mjs` | 19/19, under a **stricter** contract (fatal screens must not leak a route into a dead engine) |
-| `balance.mjs` **(new)** | 76/76 |
+| `balance.mjs` **(new)** | 82/82 |
 | `genvalidate.mjs` **(new)** | 10,000 normal + 10,000 NODBL sequences, **304,356 platforms**, 0 invalid |
 | `economy.mjs` **(new)** | pacing inside the 10–20 min target band |
-| `soak.mjs` **(new)** | 30 minutes continuous — see below |
+| `soak.mjs` **(new)** | 30 minutes continuous — **PASS** |
+
+### 30-minute soak result
+
+```
+samples            : 178
+heap first/last    : 9.5MB -> 9.5MB      (growth ratio 1.00)
+peak platforms     : 20
+peak orbs          : 32
+peak enemies       : 5
+peak shots         : 4
+DOM nodes f/l      : 250 -> 250
+distance f/l       : 265m -> 46,029m
+object arrays bounded : yes
+DOM stable            : yes
+js errors             : none
+```
+
+No memory growth, no unbounded arrays, no DOM accumulation, no audio-node
+leak and no slowdown over 46km of continuous play with bosses and Juice Mode
+forced throughout. (Headless Chromium with software GL — not a proxy for
+thermal or battery behaviour on a real phone.)
 
 `genvalidate.mjs` was **mutation-tested**: with the NODBL gap clamp removed it
 correctly failed on 120/120 sequences, so it is proven to detect the class of

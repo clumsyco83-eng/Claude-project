@@ -70,7 +70,7 @@ canvas{display:block;touch-action:none}
 /* control-scheme segmented picker */
 .schemerow{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
   letter-spacing:.09em;color:var(--haze);text-transform:uppercase;flex-wrap:wrap;justify-content:center}
-.btn.seg{padding:9px 12px;min-height:38px;font-size:9px}
+.btn.seg{padding:9px 12px;min-height:44px;font-size:9px}  /* 44px touch target */
 .btn.seg.on{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
 
 /* Scheme B on-screen controls. Semi-transparent so they never hide the

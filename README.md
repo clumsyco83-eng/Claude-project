@@ -48,7 +48,7 @@ build ships stale code.
 node test/smoke.mjs --device=iphone   # 60 assertions x 5 device profiles
 node test/features.mjs                # 36 assertions: heroes, bosses, Lab, awards
 node test/hostile.mjs                 # 19 crippled-browser cases — boot can't hang
-node test/balance.mjs                 # 76 assertions: the balance/systems contract
+node test/balance.mjs                 # 82 assertions: the balance/systems contract
 node test/genvalidate.mjs             # 10k + 10k procedural fairness sweep
 node test/economy.mjs                 # coins/min + time-to-unlock simulation
 node test/soak.mjs --min=30           # long-run memory/stability soak

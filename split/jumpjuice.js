@@ -3304,6 +3304,10 @@ if(/[?&]debug=1\b/.test(location.search)){
              cryPer100:+(cry/metres*100).toFixed(3),
              fruPer100:+(fru/metres*100).toFixed(3)};},
     extend(){return extendJuice(P.x,P.y);},
+    sfx(k){sfx(k);return true;},          /* audio-cue smoke probe */
+    sfxKeys(){return ["jump","dbl","dash","land","step","orb","cry","hurt","juice",
+      "juiceEnd","juiceExt","juiceLast","bossWeak","bossFlee","stomp","bossHit",
+      "explode","victory","siren","dead","click","ding","unlock","nope"];},
     juiceLenOf(hero){const o=SAVE.sel;SAVE.sel=hero;const r=me();
       const prev=activePass;activePass=r.pas;const v=juiceLen();
       activePass=prev;SAVE.sel=o;return v;},

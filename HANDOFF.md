@@ -28,7 +28,7 @@ Bosses recur from 350 m, then every +550 m.
 | `test/smoke.mjs` | 60 assertions × 5 device profiles |
 | `test/features.mjs` | 36 assertions covering the upgrade pass |
 | `test/hostile.mjs` | 19 crippled-browser cases — proves boot can't hang |
-| `test/balance.mjs` | 76 assertions — the balance/systems contract |
+| `test/balance.mjs` | 82 assertions — the balance/systems contract |
 | `test/genvalidate.mjs` | 10k + 10k procedural fairness sweep, seeded |
 | `test/economy.mjs` | coins/min + time-to-unlock simulation |
 | `test/soak.mjs` | long-run memory/stability soak |
@@ -54,7 +54,7 @@ node test/soak.mjs --min=30
 node test/split.mjs                     # → split/
 node test/build-artifact.mjs            # → dist/jumpjuice-artifact.html
 ```
-All currently pass: **60×5 + 36 + 19 + 76 assertions, 20,000 generated
+All currently pass: **60×5 + 36 + 19 + 82 assertions, 20,000 generated
 sequences, zero JS errors** — against both the single file and `split/`.
 Every script takes `--file=split/index.html`.
 

@@ -85,7 +85,7 @@ canvas{display:block;touch-action:none}
 /* control-scheme segmented picker */
 .schemerow{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
   letter-spacing:.09em;color:var(--haze);text-transform:uppercase;flex-wrap:wrap;justify-content:center}
-.btn.seg{padding:9px 12px;min-height:38px;font-size:9px}
+.btn.seg{padding:9px 12px;min-height:44px;font-size:9px}  /* 44px touch target */
 .btn.seg.on{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
 
 /* Scheme B on-screen controls. Semi-transparent so they never hide the
@@ -3695,6 +3695,10 @@ if(/[?&]debug=1\b/.test(location.search)){
              cryPer100:+(cry/metres*100).toFixed(3),
              fruPer100:+(fru/metres*100).toFixed(3)};},
     extend(){return extendJuice(P.x,P.y);},
+    sfx(k){sfx(k);return true;},          /* audio-cue smoke probe */
+    sfxKeys(){return ["jump","dbl","dash","land","step","orb","cry","hurt","juice",
+      "juiceEnd","juiceExt","juiceLast","bossWeak","bossFlee","stomp","bossHit",
+      "explode","victory","siren","dead","click","ding","unlock","nope"];},
     juiceLenOf(hero){const o=SAVE.sel;SAVE.sel=hero;const r=me();
       const prev=activePass;activePass=r.pas;const v=juiceLen();
       activePass=prev;SAVE.sel=o;return v;},
