@@ -6,8 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0B1226">
-  <title>Jump Juice Adventure</title>
+  <meta name="theme-color" content="#FF9A2E">
+  <meta name="description" content="Jump Juice — fill the meter, trigger Juice Mode, go further. Cute juice heroes vs the Spoiled Fruits.">
+  <title>Jump Juice</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFD056"/><stop offset="1" stop-color="%23F07C1C"/></linearGradient><linearGradient id="cup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFBE6A"/><stop offset="1" stop-color="%23E2660A"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(%23bg)"/><g fill="%23FFF0B8" opacity=".5"><circle cx="90" cy="116" r="24"/><circle cx="424" cy="92" r="16"/><circle cx="446" cy="396" r="28"/><circle cx="70" cy="408" r="18"/></g><path d="M338 92l-18 104" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l-18 104" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><rect x="112" y="146" width="288" height="56" rx="28" fill="%23E2660A" stroke="%2341230F" stroke-width="16"/><rect x="134" y="188" width="244" height="252" rx="72" fill="url(%23cup)" stroke="%2341230F" stroke-width="16"/><ellipse cx="200" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><ellipse cx="312" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><circle cx="210" cy="278" r="20" fill="%2341230F"/><circle cx="322" cy="278" r="20" fill="%2341230F"/><circle cx="202" cy="269" r="8" fill="%23fff"/><circle cx="314" cy="269" r="8" fill="%23fff"/><path d="M206 348q50 40 100 0" stroke="%2341230F" stroke-width="16" stroke-linecap="round" fill="none"/><circle cx="330" cy="404" r="34" fill="%23FFF6E4" stroke="%2341230F" stroke-width="10"/><g stroke="%23E2660A" stroke-width="6" stroke-linecap="round"><path d="M330 404l24 20M330 404l-24 20M330 404l0-30M330 404l29-10M330 404l-29-10"/></g></svg>'>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFD056"/><stop offset="1" stop-color="%23F07C1C"/></linearGradient><linearGradient id="cup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFBE6A"/><stop offset="1" stop-color="%23E2660A"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(%23bg)"/><g fill="%23FFF0B8" opacity=".5"><circle cx="90" cy="116" r="24"/><circle cx="424" cy="92" r="16"/><circle cx="446" cy="396" r="28"/><circle cx="70" cy="408" r="18"/></g><path d="M338 92l-18 104" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l-18 104" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><rect x="112" y="146" width="288" height="56" rx="28" fill="%23E2660A" stroke="%2341230F" stroke-width="16"/><rect x="134" y="188" width="244" height="252" rx="72" fill="url(%23cup)" stroke="%2341230F" stroke-width="16"/><ellipse cx="200" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><ellipse cx="312" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><circle cx="210" cy="278" r="20" fill="%2341230F"/><circle cx="322" cy="278" r="20" fill="%2341230F"/><circle cx="202" cy="269" r="8" fill="%23fff"/><circle cx="314" cy="269" r="8" fill="%23fff"/><path d="M206 348q50 40 100 0" stroke="%2341230F" stroke-width="16" stroke-linecap="round" fill="none"/><circle cx="330" cy="404" r="34" fill="%23FFF6E4" stroke="%2341230F" stroke-width="10"/><g stroke="%23E2660A" stroke-width="6" stroke-linecap="round"><path d="M330 404l24 20M330 404l-24 20M330 404l0-30M330 404l29-10M330 404l-29-10"/></g></svg>'>
   <link rel="stylesheet" href="jumpjuice.css">
 </head>
 <body>
@@ -16,19 +19,22 @@
 
   <button id="pauseBtn" aria-label="Pause">&#10074;&#10074;</button>
 
+  <!-- Order matters: logo, then the primary action, THEN the how-to-play
+       card. With the guide above the buttons, Start fell below the fold on
+       a 390x844 phone and a first-time player had to scroll to find it. -->
   <div class="ov show" id="ovStart">
-    <p class="big">JUMP JUICE</p>
-    <p class="lil">Fill the meter &middot; trigger <span class="amb">JUICE MODE</span> &middot; go further</p>
-    <div class="guide" id="gStart"></div>
-    <p class="lil amb" id="modLine" style="display:none"></p>
+    <p class="logo" aria-label="Jump Juice"><i class="l1">JUMP</i><i class="l2">JUICE<span class="drop"></span></i></p>
+    <p class="tagline">Fill the meter &middot; trigger <b>JUICE MODE</b> &middot; go further</p>
     <div class="xpwrap"><p class="lil" id="xpTxt" style="text-align:left;margin-bottom:3px"></p><div class="xpbar"><i id="xpFill"></i></div></div>
     <div class="btns">
       <button class="btn p" id="bPlay">Start</button>
-      <button class="btn" id="bFull">Fullscreen</button>
       <button class="btn" id="bChars">Juice Heroes</button>
       <button class="btn" id="bLab">Juice Lab</button>
       <button class="btn" id="bAch">Juice Journey</button>
+      <button class="btn" id="bFull">Fullscreen</button>
     </div>
+    <p class="lil amb" id="modLine" style="display:none"></p>
+    <div class="guide" id="gStart"></div>
     <div class="list" id="msStart"></div>
   </div>
 
@@ -55,7 +61,7 @@
     <p class="lil">Juice <span class="amb">lab</span></p>
     <p class="lil" id="labFruit"></p>
     <div class="list" id="labList" style="max-width:340px"></div>
-    <p class="lil" id="labEquip" style="color:var(--mint)"></p>
+    <p class="lil" id="labEquip" style="color:#2C6E2E"></p>
     <p class="lil">Juice Mode glow</p>
     <div class="opts" id="labSkins" style="max-width:360px"></div>
     <div class="btns"><button class="btn p" id="bBack3">Back</button></div>
@@ -108,16 +114,19 @@
 
   <div id="rot">
     <div class="ph"></div>
-    <div class="rtxt">Portrait works fine.<br>Landscape shows more of what is ahead.</div>
+    <div class="rtxt">Landscape shows more of the road ahead</div>
     <button class="btn" id="bRotOk">Got it</button>
   </div>
 
+  <!-- Splash + loading are one screen: brand first, progress second, so the
+       first thing a player ever sees is the logo rather than a spinner. -->
   <div id="boot">
-    <p class="big" style="font-size:26px">JUMP JUICE</p>
-    <div class="ring"></div>
+    <p class="logo" aria-label="Jump Juice"><i class="l1">JUMP</i><i class="l2">JUICE<span class="drop"></span></i></p>
+    <p class="tagline">Be fun &middot; Be juicy &middot; <b>Be a hero</b></p>
+    <div class="ring" role="progressbar" aria-label="Loading"></div>
     <p class="lil" id="bootTxt">Loading</p>
-    <p class="lil" id="bootErr" style="display:none;color:var(--rose);max-width:min(90vw,420px);
-       letter-spacing:.04em;text-transform:none;line-height:1.5"></p>
+    <p class="lil" id="bootErr" style="display:none;color:#8E0E28;max-width:min(90vw,420px);
+       letter-spacing:.02em;text-transform:none;line-height:1.5"></p>
     <div class="btns" id="bootActs" style="display:none">
       <button class="btn p" id="bootRetry" style="display:none">Retry</button>
       <button class="btn" id="bootReload" style="display:none">Reload game</button>
@@ -127,7 +136,7 @@
     <p class="lil" id="bootHint">Still on this screen? Scripts are not running here.
        File previews cannot run games &mdash; including the iPhone one, and iOS Safari
        cannot open local files at all. Open this from a web address, or on a computer.</p>
-    <noscript><p class="lil" style="color:var(--rose);text-transform:none">
+    <noscript><p class="lil" style="color:#8E0E28;text-transform:none">
       This game needs JavaScript. Please enable it and reload.</p></noscript>
   </div>
 

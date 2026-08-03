@@ -14,6 +14,11 @@
        Nunito   — clean, high-legibility UI face, used for labels and numbers
      Loaded async so first paint never blocks on the network; a rounded
      system stack carries the design if the request never lands. -->
+<!-- App icon / favicon. Inline SVG so it costs no request and cannot 404
+     when the game is opened from a file. This is the SOURCE of the store
+     icon set — see docs/ASSET-PROMPTS.md for the export sizes. -->
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFD056"/><stop offset="1" stop-color="%23F07C1C"/></linearGradient><linearGradient id="cup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFBE6A"/><stop offset="1" stop-color="%23E2660A"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(%23bg)"/><g fill="%23FFF0B8" opacity=".5"><circle cx="90" cy="116" r="24"/><circle cx="424" cy="92" r="16"/><circle cx="446" cy="396" r="28"/><circle cx="70" cy="408" r="18"/></g><path d="M338 92l-18 104" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l-18 104" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><rect x="112" y="146" width="288" height="56" rx="28" fill="%23E2660A" stroke="%2341230F" stroke-width="16"/><rect x="134" y="188" width="244" height="252" rx="72" fill="url(%23cup)" stroke="%2341230F" stroke-width="16"/><ellipse cx="200" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><ellipse cx="312" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><circle cx="210" cy="278" r="20" fill="%2341230F"/><circle cx="322" cy="278" r="20" fill="%2341230F"/><circle cx="202" cy="269" r="8" fill="%23fff"/><circle cx="314" cy="269" r="8" fill="%23fff"/><path d="M206 348q50 40 100 0" stroke="%2341230F" stroke-width="16" stroke-linecap="round" fill="none"/><circle cx="330" cy="404" r="34" fill="%23FFF6E4" stroke="%2341230F" stroke-width="10"/><g stroke="%23E2660A" stroke-width="6" stroke-linecap="round"><path d="M330 404l24 20M330 404l-24 20M330 404l0-30M330 404l29-10M330 404l-29-10"/></g></svg>'>
+<link rel="apple-touch-icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFD056"/><stop offset="1" stop-color="%23F07C1C"/></linearGradient><linearGradient id="cup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23FFBE6A"/><stop offset="1" stop-color="%23E2660A"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(%23bg)"/><g fill="%23FFF0B8" opacity=".5"><circle cx="90" cy="116" r="24"/><circle cx="424" cy="92" r="16"/><circle cx="446" cy="396" r="28"/><circle cx="70" cy="408" r="18"/></g><path d="M338 92l-18 104" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%2341230F" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M338 92l-18 104" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><path d="M338 92l54-42" stroke="%23FF6F8F" stroke-width="18" stroke-linecap="round" fill="none"/><rect x="112" y="146" width="288" height="56" rx="28" fill="%23E2660A" stroke="%2341230F" stroke-width="16"/><rect x="134" y="188" width="244" height="252" rx="72" fill="url(%23cup)" stroke="%2341230F" stroke-width="16"/><ellipse cx="200" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><ellipse cx="312" cy="272" rx="42" ry="45" fill="%23fff" stroke="%2341230F" stroke-width="12"/><circle cx="210" cy="278" r="20" fill="%2341230F"/><circle cx="322" cy="278" r="20" fill="%2341230F"/><circle cx="202" cy="269" r="8" fill="%23fff"/><circle cx="314" cy="269" r="8" fill="%23fff"/><path d="M206 348q50 40 100 0" stroke="%2341230F" stroke-width="16" stroke-linecap="round" fill="none"/><circle cx="330" cy="404" r="34" fill="%23FFF6E4" stroke="%2341230F" stroke-width="10"/><g stroke="%23E2660A" stroke-width="6" stroke-linecap="round"><path d="M330 404l24 20M330 404l-24 20M330 404l0-30M330 404l29-10M330 404l-29-10"/></g></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap"
@@ -84,6 +89,15 @@ canvas{display:block;touch-action:none}
 .ov>*:last-child{margin-bottom:auto}
 /* short screens (landscape phones): tighten everything up a step */
 @media (max-height:520px){.ov{gap:6px}.guide{padding:6px 10px;gap:2px}.btn{min-height:44px;padding:9px 13px}}
+/* narrow phones: shrink the logo a step and tighten the how-to-play card
+   so the primary action and the first mission both stay above the fold */
+@media (max-width:430px){
+  .logo .l1{font-size:clamp(30px,7.6vh,46px)}
+  .logo .l2{font-size:clamp(34px,8.8vh,54px)}
+  .guide{font-size:11px;padding:8px 11px;gap:3px;line-height:1.45}
+  .tagline{font-size:10.5px}
+  .btn{padding:10px 14px;font-size:12px}
+}
 
 /* ── the logo ───────────────────────────────────────────────────
    Drawn in CSS from live text so it stays crisp at any size and needs
@@ -131,6 +145,9 @@ canvas{display:block;touch-action:none}
   border:1.5px solid rgba(65,35,15,.35);overflow:hidden}
 .it .fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--oj));
   border-radius:3px;transition:width .3s ease}
+/* a plain description row inside a panel — no track chrome */
+.it .desc{grid-column:1/-1;font-family:var(--ui);font-weight:700;font-size:10px;
+  color:var(--ink-2);line-height:1.4;padding-top:2px}
 
 /* ── buttons: the one control style, all states ── */
 .btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
@@ -301,19 +318,22 @@ canvas{display:block;touch-action:none}
 
   <button id="pauseBtn" aria-label="Pause">&#10074;&#10074;</button>
 
+  <!-- Order matters: logo, then the primary action, THEN the how-to-play
+       card. With the guide above the buttons, Start fell below the fold on
+       a 390x844 phone and a first-time player had to scroll to find it. -->
   <div class="ov show" id="ovStart">
     <p class="logo" aria-label="Jump Juice"><i class="l1">JUMP</i><i class="l2">JUICE<span class="drop"></span></i></p>
     <p class="tagline">Fill the meter &middot; trigger <b>JUICE MODE</b> &middot; go further</p>
-    <div class="guide" id="gStart"></div>
-    <p class="lil amb" id="modLine" style="display:none"></p>
     <div class="xpwrap"><p class="lil" id="xpTxt" style="text-align:left;margin-bottom:3px"></p><div class="xpbar"><i id="xpFill"></i></div></div>
     <div class="btns">
       <button class="btn p" id="bPlay">Start</button>
-      <button class="btn" id="bFull">Fullscreen</button>
       <button class="btn" id="bChars">Juice Heroes</button>
       <button class="btn" id="bLab">Juice Lab</button>
       <button class="btn" id="bAch">Juice Journey</button>
+      <button class="btn" id="bFull">Fullscreen</button>
     </div>
+    <p class="lil amb" id="modLine" style="display:none"></p>
+    <div class="guide" id="gStart"></div>
     <div class="list" id="msStart"></div>
   </div>
 
@@ -393,7 +413,7 @@ canvas{display:block;touch-action:none}
 
   <div id="rot">
     <div class="ph"></div>
-    <div class="rtxt">Portrait works fine.<br>Landscape shows more of what is ahead.</div>
+    <div class="rtxt">Landscape shows more of the road ahead</div>
     <button class="btn" id="bRotOk">Got it</button>
   </div>
 
@@ -1017,7 +1037,7 @@ const BREWS={
     t:"Juice Mode makes you huge — wider shockwave, +25% meter gain"},
   rainbow:{n:"Rainbow Juice",icon:"🌈",col:"#FF8AD8",
     cost:{straw:2,mango:2,lemon:2,kiwi:2},
-    t:"Juice Mode lasts 60% longer and orbs are worth triple"}};
+    t:"Juice Mode lasts 60% longer and juice drops are worth triple"}};
 let BREW=null;                             /* brew active this run */
 function fruitTotal(){let n=0;for(const k in SAVE.fruit)n+=SAVE.fruit[k]|0;return n;}
 function canBrew(k){
@@ -1904,6 +1924,7 @@ const WORLDS=[
  {n:"BERRY FOREST",short:"BERRY",
   a:"#5C4BC4",b:"#C0A8F0",r:["#6E4FA8","#573C8C","#3F2A6B"],
   p:"#5C3E7A",pt:"#8F5FD0",e:"#D9B8FF",acc:"#9B54DC",
+  sun:"rgba(230,210,255,.24)",sun2:"rgba(246,238,255,.5)",
   wx:"spark",mod:null,prop:"berrytree",ground:"moss"},
  {n:"WATERMELON BEACH",short:"BEACH",
   a:"#39C4E8",b:"#DFF7FF",r:["#6FD9C0","#49BFA8","#2E9E8C"],
@@ -1916,18 +1937,22 @@ const WORLDS=[
  {n:"GRAPE CASTLE",short:"CASTLE",
   a:"#3B2A72",b:"#8F72D4",r:["#4C3390","#3C2775","#2C1B58"],
   p:"#6B5A96",pt:"#9B85C6",e:"#D6C6FF",acc:"#9B54DC",
+  sun:"rgba(220,200,255,.22)",sun2:"rgba(244,238,255,.55)",
   wx:"spark",mod:"wind",prop:"tower",ground:"stone"},
  {n:"MANGO DESERT",short:"DESERT",
   a:"#FFB347",b:"#FFE9B0",r:["#E8A44C","#D18A34","#B06E22"],
   p:"#D9A055",pt:"#F0C070",e:"#FFE0A0",acc:"#FFB733",
+  sun:"rgba(255,236,172,.34)",sun2:"rgba(255,248,214,.72)",
   wx:"sand",mod:"gaps",prop:"temple",ground:"sand"},
  {n:"PINEAPPLE VOLCANO",short:"VOLCANO",
   a:"#6B1E28",b:"#FF9A3B",r:["#4A1A18","#5F2119","#7C2C1C"],
   p:"#4A2A20",pt:"#FFB33B",e:"#FFD98A",acc:"#FFD23B",
+  sun:"rgba(255,170,90,.24)",sun2:"rgba(255,214,150,.44)",
   wx:"ember",mod:"spikes",prop:"volcano",ground:"rock"},
  {n:"SODA FACTORY",short:"FACTORY",
   a:"#2C4A5E",b:"#7FC4D9",r:["#3A5F72","#2E4E5F","#24404E"],
   p:"#7C6B5A",pt:"#B0A08C",e:"#D9CFC0",acc:"#6B4326",
+  sun:"rgba(200,230,245,.22)",sun2:"rgba(238,248,255,.6)",
   wx:"fizz",mod:"slick",prop:"pipes",ground:"metal"}];
 const hx=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 WORLDS.forEach(w=>{w.A=hx(w.a);w.B=hx(w.b);w.P=hx(w.p);w.PT=hx(w.pt);});
@@ -2017,6 +2042,8 @@ const GLOW_HOT=makeGlow("rgba(255,122,47,.7)",26);
 const GLOW_RED=makeGlow("rgba(255,95,122,.6)",46);
 const GLOW_GRN=makeGlow("rgba(111,231,140,.75)",54);
 const GLOW_WHT=makeGlow("rgba(255,255,255,.5)",34);
+const GLOW_PUR=makeGlow("rgba(190,120,255,.6)",46);
+const GLOW_GRN2=makeGlow("rgba(140,220,90,.55)",46);
 let GLOW_JUICE=makeGlow("hsla(0,95%,65%,.6)",40),juiceHue=-1;
 function juiceGlow(){
   const h=(frame*7)%360|0, q=h-(h%18);
@@ -3509,8 +3536,8 @@ function draw(){
      so the world feels like a place rather than a scrolling texture. */
   if(!lite){
     const sx=((-camX*.02)%(W+520)+W+520)%(W+520)-160, sy=54;
-    ctx.fillStyle="rgba(255,246,210,.30)";ctx.beginPath();ctx.arc(sx,sy,54,0,7);ctx.fill();
-    ctx.fillStyle="rgba(255,250,225,.55)";ctx.beginPath();ctx.arc(sx,sy,32,0,7);ctx.fill();
+    ctx.fillStyle=wl.sun||"rgba(255,246,210,.26)";ctx.beginPath();ctx.arc(sx,sy,54,0,7);ctx.fill();
+    ctx.fillStyle=wl.sun2||"rgba(255,250,225,.5)";ctx.beginPath();ctx.arc(sx,sy,32,0,7);ctx.fill();
   }
 
   /* twinkling sparkles: berry motes, desert grit, factory fizz */
@@ -3594,9 +3621,9 @@ function draw(){
       /* blades grow UP out of the cap — grass hanging into the soil was
          the giveaway that this was a rectangle with decoration on it */
       ctx.fillStyle=cap;
-      for(let i=1;i<pl.w-7;i+=13){
-        ctx.beginPath();ctx.moveTo(px+i,pl.y+3);
-        ctx.quadraticCurveTo(px+i+4,pl.y-9,px+i+9,pl.y+3);ctx.closePath();ctx.fill();}
+      for(let i=2;i<pl.w-13;i+=21){
+        ctx.beginPath();ctx.moveTo(px+i,pl.y+4);
+        ctx.quadraticCurveTo(px+i+6,pl.y-11,px+i+13,pl.y+4);ctx.closePath();ctx.fill();}
     } else if(wl.ground==="metal"){
       ctx.fillStyle="rgba(65,35,15,.35)";
       for(let i=6;i<pl.w-4;i+=16){ctx.beginPath();ctx.arc(px+i,pl.y+pl.h*.86,1.6,0,7);ctx.fill();}
@@ -4142,7 +4169,8 @@ function drawBoss(lite){
 
   ctx.save();
   if(boss.hurt>0&&frame%6<3)ctx.globalAlpha*=.45;
-  if(!lite)glow(stunned?GLOW_GRN:(boss.k==="pine"||boss.k==="melon"?GLOW_HOT:GLOW_RED),bx,by,stunned?1.15:1.05);
+  if(!lite)glow(stunned?GLOW_GRN:(boss.k==="pine"?GLOW_HOT:boss.k==="grape"?GLOW_PUR:
+    boss.k==="soda"?GLOW_WHT:GLOW_GRN2),bx,by,stunned?1.15:1.05);
 
   const flap=Math.sin(frame/(boss.st==="swoop"?3:stunned?16:9))*16;
   const hit=boss.hurt>20;
@@ -4706,8 +4734,7 @@ function paintLab(){
     const el=document.createElement("div");
     el.className="it"+(eq?" done":"");
     el.style.cursor="pointer";
-    el.innerHTML='<span></span><span class="v"></span><span class="track" style="height:auto;background:none">'+
-                 '<span style="font-family:var(--ui);font-weight:700;font-size:9.5px;color:var(--ink-2)"></span></span>';
+    el.innerHTML='<span></span><span class="v"></span><span class="desc"><span></span></span>';
     el.children[0].textContent=B.icon+"  "+B.n;
     el.children[1].textContent=eq?"EQUIPPED":Object.keys(B.cost).map(f=>FRUIT[f].icon+B.cost[f]).join(" ");
     el.children[2].firstChild.textContent=B.t;

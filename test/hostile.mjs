@@ -22,7 +22,7 @@ const CASES = {
   "corrupt saved game": () => { try { localStorage.setItem("jja2", "{not json"); } catch (e) {} },
   "save with wrong types": () => {
     try { localStorage.setItem("jja2", JSON.stringify({
-      best: "NaN", coins: null, xp: {}, unlocked: "Blip", sel: 42,
+      best: "NaN", coins: null, xp: {}, unlocked: "OJ", sel: 42,
       msProg: "x", msDone: null, ach: 7 })); } catch (e) {}
   },
   "no visualViewport": () => { delete window.visualViewport; },

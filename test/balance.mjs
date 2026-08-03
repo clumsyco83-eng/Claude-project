@@ -41,9 +41,9 @@ const jl = await page.evaluate(() => {
   JJA_DEBUG.setMod(null);
   return {
     cap: JJA_DEBUG.state.juiceCapF,
-    blip: JJA_DEBUG.juiceLenOf("Blip"),
-    bolt: JJA_DEBUG.juiceLenOf("Bolt"),
-    frost: JJA_DEBUG.juiceLenOf("Frost"),
+    blip: JJA_DEBUG.juiceLenOf("OJ"),
+    bolt: JJA_DEBUG.juiceLenOf("Zest"),
+    frost: JJA_DEBUG.juiceLenOf("Sorbet"),
   };
 });
 eq("standard hero Juice Mode frames", jl.blip, 720);
@@ -56,7 +56,7 @@ ok("hard cap = 15.0s", jl.cap / 60 === 15, jl.cap / 60);
 ok("a non-speed hero matches the standard duration", jl.frost === jl.blip, [jl.frost, jl.blip]);
 
 const ext = await page.evaluate(async () => {
-  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("Blip");
+  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("OJ");
   await new Promise(r => setTimeout(r, 260));
   JJA_DEBUG.fillJuice();
   await new Promise(r => setTimeout(r, 320));
@@ -79,7 +79,7 @@ ok("extension stops being accepted at the cap (no infinite loop)",
 /* ─────────────────────────── hearts ─────────────────────────────── */
 console.log("\nHearts");
 const hearts = await page.evaluate(async () => {
-  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("Blip"); JJA_DEBUG.restart();
+  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("OJ"); JJA_DEBUG.restart();
   await new Promise(r => setTimeout(r, 300));
   const fresh = JJA_DEBUG.state;
   /* one fall = exactly one heart, and i-frames must block an instant repeat */
@@ -101,7 +101,7 @@ ok("respawn is inside the play area", hearts.py < 450 && hearts.py > -200, heart
 
 /* the Squid shield absorbs a hit instead of a heart */
 const shield = await page.evaluate(async () => {
-  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("Squid");
+  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("Kiwi");
   await new Promise(r => setTimeout(r, 320));
   const a = JJA_DEBUG.state;
   JJA_DEBUG.voidPlayer();
@@ -145,7 +145,7 @@ const modLabel = await page.evaluate(() => {
 ok("FAST modifier is active when forced", modLabel === "FAST" || /turbo/i.test(String(modLabel)), modLabel);
 
 const nodbl = await page.evaluate(async () => {
-  JJA_DEBUG.setMod("NODBL"); JJA_DEBUG.setHero("Blip"); JJA_DEBUG.restart();
+  JJA_DEBUG.setMod("NODBL"); JJA_DEBUG.setHero("OJ"); JJA_DEBUG.restart();
   await new Promise(r => setTimeout(r, 320));
   const seq = JJA_DEBUG.genSeq("NODBL", 900, 4);
   const lane = seq.filter(p => !p.high).sort((a, b) => a.x - b.x);
@@ -171,15 +171,15 @@ const heroes = await page.evaluate(() => JJA_DEBUG.economy().heroes);
 const paidNoTrick = heroes.filter(h => h.cost > 0 && h.pas === "none");
 ok("no PAID hero is left with no passive", paidNoTrick.length === 0,
    paidNoTrick.map(h => h.id));
-const inferno = heroes.find(h => h.id === "Inferno");
+const inferno = heroes.find(h => h.id === "Chili");
 const slayers = heroes.filter(h => h.pas === "slayer").map(h => h.id);
 eq("Inferno is the fire hero, not a damage clone", inferno.pas, "firelord");
 ok("Slayer heroes keep the damage identity alone", slayers.length > 0 && inferno.pas !== "slayer", slayers);
 const dmg = await page.evaluate(async () => {
   JJA_DEBUG.setMod(null);
-  JJA_DEBUG.setHero("Inferno"); await new Promise(r => setTimeout(r, 260));
+  JJA_DEBUG.setHero("Chili"); await new Promise(r => setTimeout(r, 260));
   const i = JJA_DEBUG.probeDamage();
-  JJA_DEBUG.setHero("Dino"); await new Promise(r => setTimeout(r, 260));
+  JJA_DEBUG.setHero("Dragon"); await new Promise(r => setTimeout(r, 260));
   const d = JJA_DEBUG.probeDamage();
   return { inferno: i, slayer: d };
 });
@@ -187,9 +187,9 @@ eq("Slayer deals double damage", dmg.slayer, 2);
 eq("Inferno no longer doubles damage (that was Slayer's identity)", dmg.inferno, 1);
 const boltGain = await page.evaluate(async () => {
   JJA_DEBUG.setMod(null);
-  JJA_DEBUG.setHero("Blip"); await new Promise(r => setTimeout(r, 240));
+  JJA_DEBUG.setHero("OJ"); await new Promise(r => setTimeout(r, 240));
   const base = JJA_DEBUG.probeGain(10);
-  JJA_DEBUG.setHero("Bolt"); await new Promise(r => setTimeout(r, 240));
+  JJA_DEBUG.setHero("Zest"); await new Promise(r => setTimeout(r, 240));
   const bolt = JJA_DEBUG.probeGain(10);
   return { base, bolt };
 });
@@ -253,7 +253,7 @@ ok("settings block is written to the save", persisted.has, persisted);
 
 const migrated = await page.evaluate(() => {
   /* an old save with no settings block at all, plus a corrupt one */
-  const legacy = { best: 4321, coins: 999, xp: 50, unlocked: ["Blip"], sel: "Blip" };
+  const legacy = { best: 4321, coins: 999, xp: 50, unlocked: ["OJ"], sel: "OJ" };
   localStorage.setItem("jja2", JSON.stringify(legacy));
   return true;
 });
@@ -296,7 +296,7 @@ ok("corrupt save still leaves the player a hero", afterCorrupt.save.unlocked.len
 /* ─────────────────────────── boss ───────────────────────────────── */
 console.log("\nBoss");
 const bossR = await page3.evaluate(async () => {
-  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("Blip"); JJA_DEBUG.restart();
+  JJA_DEBUG.setMod(null); JJA_DEBUG.setHero("OJ"); JJA_DEBUG.restart();
   await new Promise(r => setTimeout(r, 260));
   JJA_DEBUG.forceBoss();
   for (let i = 0; i < 60; i++) {

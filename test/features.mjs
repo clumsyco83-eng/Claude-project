@@ -26,7 +26,7 @@ const g = await S();
 ok("HUD anchors above the play band (top of screen)", g.safeTop + 4 < g.WY, { safeTop: g.safeTop, WY: g.WY });
 
 /* 2. hero abilities */
-const HEROES = { Bolt: "+25% SPEED", Frost: "ENEMIES SLOWED", Inferno: "FIRE LORD", Nature: "+60% JUICE" };
+const HEROES = { Zest: "+25% SPEED", Sorbet: "ENEMIES CHILLED", Chili: "FIRE LORD", Verdi: "+60% JUICE" };
 for (const [id, label] of Object.entries(HEROES)) {
   await D(h => window.JJA_DEBUG.setHero(h), id);
   await page.waitForTimeout(150);
@@ -43,7 +43,7 @@ async function topSpeed(hero) {
   await page.keyboard.up("KeyD");
   return mx;
 }
-const vClassic = await topSpeed("Blip"), vBolt = await topSpeed("Bolt");
+const vClassic = await topSpeed("OJ"), vBolt = await topSpeed("Zest");
 ok("Bolt is actually faster than Classic", vBolt > vClassic * 1.1, { classic: +vClassic.toFixed(2), bolt: +vBolt.toFixed(2) });
 /* Nature fills the meter measurably faster for the same pickups */
 async function gainFor(hero) {
@@ -51,31 +51,31 @@ async function gainFor(hero) {
   await page.waitForTimeout(150);
   return D(() => window.JJA_DEBUG.probeGain(10));
 }
-const gClassic = await gainFor("Blip"), gNature = await gainFor("Nature");
+const gClassic = await gainFor("OJ"), gNature = await gainFor("Verdi");
 ok("Nature gains more juice per pickup", gNature > gClassic * 1.5, { classic: gClassic, nature: gNature });
 /* Damage identity belongs to Slayer alone. Inferno used to share the exact
    same "x2 damage" passive, which left two headline heroes feeling identical;
    it is now the fire hero (immunity + flame-burst landings) instead. */
-const dClassic = await D(() => { window.JJA_DEBUG.setHero("Blip"); return window.JJA_DEBUG.probeDamage(); });
-const dSlayer = await D(() => { window.JJA_DEBUG.setHero("Dino"); return window.JJA_DEBUG.probeDamage(); });
-const dInferno = await D(() => { window.JJA_DEBUG.setHero("Inferno"); return window.JJA_DEBUG.probeDamage(); });
+const dClassic = await D(() => { window.JJA_DEBUG.setHero("OJ"); return window.JJA_DEBUG.probeDamage(); });
+const dSlayer = await D(() => { window.JJA_DEBUG.setHero("Dragon"); return window.JJA_DEBUG.probeDamage(); });
+const dInferno = await D(() => { window.JJA_DEBUG.setHero("Chili"); return window.JJA_DEBUG.probeDamage(); });
 ok("Slayer deals double damage", dSlayer === dClassic * 2, { classic: dClassic, slayer: dSlayer });
-ok("Inferno no longer duplicates Slayer's damage bonus", dInferno === dClassic,
+ok("Chili no longer duplicates Slayer's damage bonus", dInferno === dClassic,
    { classic: dClassic, inferno: dInferno });
 const infernoPas = await D(() => {
-  window.JJA_DEBUG.setHero("Inferno");
-  return window.JJA_DEBUG.economy().heroes.find(h => h.id === "Inferno").pas;
+  window.JJA_DEBUG.setHero("Chili");
+  return window.JJA_DEBUG.economy().heroes.find(h => h.id === "Chili").pas;
 });
-ok("Inferno's passive is fire, not damage", infernoPas === "firelord", infernoPas);
+ok("Chili's passive is fire, not damage", infernoPas === "firelord", infernoPas);
 
-/* 3. bosses: four kinds, first is the Juice Monster, three phases */
+/* 3. bosses: four kinds, first is the Watermelon King, three phases */
 const st0 = await S();
 ok("four boss kinds defined", st0.bosses.length === 4, st0.bosses);
 await D(() => window.JJA_DEBUG.restart());
 await alive();
 await D(() => { const d = window.JJA_DEBUG; d.setDist(360); d.forceBoss(); });
 for (let i = 0; i < 40 && !(await S()).boss; i++) { await alive(); await page.waitForTimeout(50); }
-ok("first boss of a run is the Juice Monster", (await S()).boss.k === "juice", (await S()).boss);
+ok("first boss of a run is the Watermelon King", (await S()).boss.k === "melon", (await S()).boss);
 ok("boss starts at phase 1", (await S()).boss.phase === 1);
 /* walk it down through the phases */
 const seenPhase = new Set(); let seenMinion = false;

@@ -1,152 +1,287 @@
 /* Jump Juice Adventure — styles */
-:root{--bone:#F2EDE4;--haze:#A8B8D8;--amber:#FFC94A;--ink:#0B1226;--rose:#FF5F7A;--mint:#6FCF7F;
-      --line:rgba(168,184,216,.22);--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-      --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
-      --sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
+/* ══════════════════════════════════════════════════════════════════
+   JUMP JUICE — INTERFACE DESIGN SYSTEM
+   One rulebook for every screen. Rounded panels, chunky ink-outlined
+   buttons with a solid "drop" edge, warm fruit-stand paper, and a warm
+   brown ink line (never cold black) so UI and canvas art share one
+   language. Every interactive control carries the full state set:
+   rest / hover / pressed / selected / disabled / locked.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  /* --- core ink & paper --- */
+  --ink:#41230F;            /* warm outline — the single line colour      */
+  --ink-2:#6B3F22;          /* softened ink for secondary text            */
+  --cream:#FFF6E4;          /* panel fill                                 */
+  --paper:#FFE7BC;          /* recessed fill                              */
+  --shade:rgba(65,35,15,.16);
+  /* --- fruit palette --- */
+  --oj:#FF9A2E;    --oj-d:#E2660B;   --oj-l:#FFC069;
+  --gold:#FFC93C;  --gold-d:#E09A08;
+  --berry:#FF4D6D; --berry-d:#D42248;
+  --grape:#9B54DC; --grape-d:#6D2CA8;
+  --kiwi:#8FD44A;  --kiwi-d:#4E9E2E;
+  --leaf:#4FB250;
+  --sky:#8FDDFF;   --sky-d:#2E9BD6;
+  --ok:#4FB250;    --warn:#FF4D6D;
+  /* --- type --- */
+  --disp:"Baloo 2",Chalkboard,"Comic Sans MS",system-ui,sans-serif;
+  --ui:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* --- safe areas --- */
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;overscroll-behavior:none;
-          touch-action:none;font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;color:var(--bone)}
-#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#2B1608;overscroll-behavior:none;
+          touch-action:none;font-family:var(--ui);color:var(--ink);font-weight:700}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#2B1608}
 canvas{display:block;touch-action:none}
 
-/* overlays — visibility/opacity (not display) so they can cross-fade,
-   and pointer-events:none while hidden so canvas taps pass through */
-.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:9px;background:rgba(11,18,38,.93);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+/* ── overlays ───────────────────────────────────────────────────
+   Visibility/opacity (not display) so screens cross-fade, and
+   pointer-events:none while hidden so canvas taps pass through. */
+/* justify-content:flex-start + auto margins on the first and last child,
+   NOT justify-content:center. A centred flex column whose content is
+   taller than the viewport clips its own top and the overflow cannot be
+   scrolled back to — which is exactly how the logo lost its head on a
+   short screen. Auto margins centre when there is room and collapse to
+   zero when there is not. */
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    gap:10px;background:
+      radial-gradient(120% 80% at 50% 0%,rgba(255,214,140,.96),rgba(255,168,64,.96) 55%,rgba(240,124,28,.97) 100%);
     padding:calc(14px + var(--sat)) calc(16px + var(--sar)) calc(14px + var(--sab)) calc(16px + var(--sal));
     overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;line-height:1.4;z-index:5;
-    opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease}
+    opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease}
 .ov.show{opacity:1;visibility:visible;pointer-events:auto}
-.big{font-size:clamp(24px,6.5vh,44px);font-weight:700;margin:0;letter-spacing:-.02em;text-align:center}
-.lil{font-family:var(--mono);font-size:clamp(9px,1.6vh,11px);letter-spacing:.13em;text-transform:uppercase;
-     color:var(--haze);margin:0;text-align:center}
-.amb{color:var(--amber)}
-.list{width:100%;max-width:300px;display:grid;gap:4px}
-.it{display:grid;grid-template-columns:1fr auto;gap:2px 8px;border:1px solid var(--line);border-radius:7px;
-    padding:5px 8px;font-size:clamp(9.5px,1.6vh,11.5px);background:rgba(168,184,216,.05)}
-.it.done{border-color:rgba(255,201,74,.5);background:rgba(255,201,74,.09)}
-.it .v{font-family:var(--mono);font-size:9px;color:var(--haze)}
-.it.done .v{color:var(--amber)}
-.it .track{grid-column:1/-1;height:2px;background:rgba(168,184,216,.2);border-radius:2px}
-.it .fill{height:100%;background:var(--amber);border-radius:2px;transition:width .3s ease}
-.btns{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
-.btn{appearance:none;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:rgba(168,184,216,.1);
-     color:var(--bone);font-family:var(--mono);font-size:clamp(9.5px,1.6vh,11px);letter-spacing:.11em;
-     text-transform:uppercase;padding:12px 16px;min-height:44px;touch-action:manipulation;
-     transition:transform .07s ease,filter .12s ease}
-.btn:active{transform:scale(.95);filter:brightness(1.15)}
-.btn.p{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
-.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:5px;width:100%;max-width:520px;
-        max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:2px}
-.card{border:1px solid var(--line);border-radius:8px;padding:5px 3px;text-align:center;cursor:pointer;
-      background:rgba(168,184,216,.05);transition:transform .07s ease}
-.card:active{transform:scale(.94)}
-.card.sel{border-color:var(--amber);background:rgba(255,201,74,.1)}
-.card.lock{opacity:.5}
-.card canvas{width:28px;height:35px;margin:0 auto;display:block}
-.card .n{font-family:var(--mono);font-size:7.5px;letter-spacing:.06em;margin-top:2px}
-.card .s{font-family:var(--mono);font-size:7px;color:var(--haze);line-height:1.25}
-.card .c{font-family:var(--mono);font-size:8px;color:var(--amber)}
-.card .rr{font-family:var(--mono);font-size:6.5px;letter-spacing:.09em;margin-top:2px;opacity:.85}
-.xpwrap{width:100%;max-width:300px}
-.xpbar{height:4px;background:rgba(168,184,216,.2);border-radius:3px;overflow:hidden}
-.xpbar i{display:block;height:100%;background:var(--amber);transition:width .35s ease}
-.opts{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:420px}
-.chip{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;
-  min-height:38px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--haze);
-  text-transform:uppercase;touch-action:manipulation}
-.chip input{position:absolute;opacity:0;pointer-events:none}
-.chip .dot{width:7px;height:7px;border-radius:50%;border:1px solid currentColor;flex:none}
-.chip:has(input:checked){color:var(--amber);border-color:rgba(255,201,74,.45);background:rgba(255,201,74,.07)}
-.chip:has(input:checked) .dot{background:var(--amber);box-shadow:0 0 6px rgba(255,201,74,.7)}
-.volrow{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:9px;letter-spacing:.09em;
-  color:var(--haze);text-transform:uppercase}
-.volrow input[type=range]{-webkit-appearance:none;appearance:none;width:130px;height:22px;background:transparent}
-.volrow input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:rgba(168,184,216,.25)}
-.volrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;
-  border-radius:50%;background:var(--amber);border:none}
-.volrow input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:rgba(168,184,216,.25)}
-.volrow input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:var(--amber)}
-/* control-scheme segmented picker */
-.schemerow{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
-  letter-spacing:.09em;color:var(--haze);text-transform:uppercase;flex-wrap:wrap;justify-content:center}
-.btn.seg{padding:9px 12px;min-height:44px;font-size:9px}  /* 44px touch target */
-.btn.seg.on{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
+/* soft juice-bubble texture, purely decorative and cheap (no blur filters) */
+.ov::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
+  background:
+    radial-gradient(circle at 12% 18%,rgba(255,255,255,.5) 0 5px,transparent 6px),
+    radial-gradient(circle at 84% 12%,rgba(255,255,255,.4) 0 8px,transparent 9px),
+    radial-gradient(circle at 22% 82%,rgba(255,255,255,.35) 0 6px,transparent 7px),
+    radial-gradient(circle at 74% 88%,rgba(255,255,255,.4) 0 4px,transparent 5px),
+    radial-gradient(circle at 92% 56%,rgba(255,255,255,.3) 0 7px,transparent 8px)}
+.ov>*{position:relative;z-index:1;flex:none;max-width:100%}
+.ov>*:first-child{margin-top:auto}
+.ov>*:last-child{margin-bottom:auto}
+/* short screens (landscape phones): tighten everything up a step */
+@media (max-height:520px){.ov{gap:6px}.guide{padding:6px 10px;gap:2px}.btn{min-height:44px;padding:9px 13px}}
+/* narrow phones: shrink the logo a step and tighten the how-to-play card
+   so the primary action and the first mission both stay above the fold */
+@media (max-width:430px){
+  .logo .l1{font-size:clamp(30px,7.6vh,46px)}
+  .logo .l2{font-size:clamp(34px,8.8vh,54px)}
+  .guide{font-size:11px;padding:8px 11px;gap:3px;line-height:1.45}
+  .tagline{font-size:10.5px}
+  .btn{padding:10px 14px;font-size:12px}
+}
 
-/* Scheme B on-screen controls. Semi-transparent so they never hide the
-   action, but every target is >=56px and clear of the safe-area insets. */
+/* ── the logo ───────────────────────────────────────────────────
+   Drawn in CSS from live text so it stays crisp at any size and needs
+   no image request. Chunky rounded face, cream fill, thick warm ink
+   outline, a solid drop edge, plus a juice droplet dotting the word. */
+.logo{display:block;text-align:center;line-height:.86;margin:0;font-family:var(--disp);font-weight:800;
+  letter-spacing:.01em;filter:drop-shadow(0 6px 0 rgba(120,58,10,.35))}
+.logo i{display:block;font-style:normal;position:relative}
+.logo .l1{font-size:clamp(34px,9.4vh,62px);color:#FFF8E8;
+  -webkit-text-stroke:clamp(4px,1.1vh,7px) var(--ink);paint-order:stroke fill;
+  text-shadow:0 clamp(3px,.7vh,5px) 0 var(--ink)}
+.logo .l2{font-size:clamp(40px,11vh,74px);color:var(--gold);margin-top:-.06em;
+  -webkit-text-stroke:clamp(4px,1.1vh,7px) var(--ink);paint-order:stroke fill;
+  text-shadow:0 clamp(3px,.7vh,5px) 0 var(--ink)}
+/* the droplet that hangs off the mark */
+.logo .drop{position:absolute;right:-.34em;top:-.16em;width:.3em;height:.38em;
+  background:linear-gradient(180deg,var(--gold),var(--oj-d));
+  border:clamp(2px,.4vh,3px) solid var(--ink);
+  border-radius:52% 52% 50% 50%/72% 72% 42% 42%;transform:rotate(8deg);
+  animation:dropBob 2.4s ease-in-out infinite}
+.logo .drop::after{content:"";position:absolute;left:22%;top:26%;width:26%;height:20%;border-radius:50%;
+  background:rgba(255,255,255,.85)}
+@keyframes dropBob{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-9%) rotate(4deg)}}
+.tagline{font-family:var(--disp);font-weight:700;font-size:clamp(10px,1.9vh,14px);letter-spacing:.1em;
+  text-transform:uppercase;color:#FFF8E8;text-align:center;margin:0;
+  text-shadow:0 2px 0 rgba(120,58,10,.55)}
+.tagline b{color:var(--gold);font-weight:800}
+
+/* ── headings & body ── */
+.big{font-family:var(--disp);font-size:clamp(26px,7vh,48px);font-weight:800;margin:0;text-align:center;
+  color:#FFF8E8;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink)}
+.lil{font-family:var(--ui);font-weight:800;font-size:clamp(10px,1.7vh,12.5px);letter-spacing:.08em;
+     text-transform:uppercase;color:#5C300F;margin:0;text-align:center;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.amb{color:#8A3B00}
+
+/* ── panels & rows ── */
+.list{width:100%;max-width:320px;display:grid;gap:6px}
+.it{display:grid;grid-template-columns:1fr auto;gap:3px 8px;border:2.5px solid var(--ink);border-radius:13px;
+    padding:7px 10px;font-size:clamp(10px,1.7vh,12.5px);background:var(--cream);
+    box-shadow:0 3px 0 var(--shade);color:var(--ink)}
+.it.done{background:linear-gradient(180deg,#FFF0B8,#FFD86A);border-color:var(--ink)}
+.it .v{font-family:var(--ui);font-weight:800;font-size:10px;color:var(--ink-2)}
+.it.done .v{color:#8A3B00}
+.it .track{grid-column:1/-1;height:6px;background:var(--paper);border-radius:4px;
+  border:1.5px solid rgba(65,35,15,.35);overflow:hidden}
+.it .fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--oj));
+  border-radius:3px;transition:width .3s ease}
+/* a plain description row inside a panel — no track chrome */
+.it .desc{grid-column:1/-1;font-family:var(--ui);font-weight:700;font-size:10px;
+  color:var(--ink-2);line-height:1.4;padding-top:2px}
+
+/* ── buttons: the one control style, all states ── */
+.btns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+.btn{appearance:none;border:3px solid var(--ink);border-radius:15px;cursor:pointer;
+     background:linear-gradient(180deg,#FFFFFF,var(--paper));
+     color:var(--ink);font-family:var(--disp);font-weight:700;font-size:clamp(11px,1.8vh,14px);
+     letter-spacing:.04em;text-transform:uppercase;padding:11px 17px;min-height:48px;
+     touch-action:manipulation;box-shadow:0 5px 0 var(--ink),0 7px 10px rgba(80,40,10,.28);
+     transition:transform .07s ease,box-shadow .07s ease,filter .12s ease}
+@media (hover:hover){.btn:hover{filter:brightness(1.06)}}
+.btn:active,.btn.press{transform:translateY(4px);box-shadow:0 1px 0 var(--ink),0 2px 5px rgba(80,40,10,.3)}
+.btn:focus-visible{outline:3px solid #FFF8E8;outline-offset:3px}
+.btn.p{background:linear-gradient(180deg,#FFD874,var(--oj));color:#4A2405}
+.btn.grape{background:linear-gradient(180deg,#C88CF0,var(--grape));color:#FFF8E8}
+.btn.kiwi{background:linear-gradient(180deg,#C6F09A,var(--kiwi));color:#2C4A12}
+.btn[disabled],.btn.off{opacity:.5;filter:grayscale(.5);pointer-events:none;
+  box-shadow:0 3px 0 rgba(65,35,15,.5)}
+
+/* ── hero roster ── */
+/* grid-auto-rows:max-content is load-bearing: without it the capped
+   height squeezes the rows instead of scrolling, and every portrait is
+   clipped in half. */
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));grid-auto-rows:max-content;
+        gap:8px;width:100%;max-width:580px;
+        max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:3px}
+.card{border:3px solid var(--ink);border-radius:15px;padding:6px 4px 5px;text-align:center;cursor:pointer;
+      background:linear-gradient(180deg,#FFFFFF,var(--paper));box-shadow:0 4px 0 var(--shade);
+      transition:transform .07s ease,box-shadow .07s ease;position:relative;overflow:hidden}
+.card:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shade)}
+.card.sel{background:linear-gradient(180deg,#FFF0B0,#FFD05A);box-shadow:0 4px 0 var(--gold-d),0 0 0 3px #FFF8E8}
+.card.lock{filter:grayscale(.75);opacity:.72}
+.card.lock::after{content:"🔒";position:absolute;top:4px;right:6px;font-size:11px;filter:none}
+.card canvas{width:44px;height:56px;margin:0 auto;display:block}
+.card .n{font-family:var(--disp);font-weight:800;font-size:11px;letter-spacing:.02em;margin-top:2px;color:var(--ink)}
+.card .s{font-family:var(--ui);font-weight:700;font-size:8px;color:var(--ink-2);line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
+.card .c{font-family:var(--ui);font-weight:800;font-size:9.5px;color:#8A3B00}
+.card .rr{font-family:var(--ui);font-weight:800;font-size:7px;letter-spacing:.09em;margin-top:2px}
+
+/* ── XP strip ── */
+.xpwrap{width:100%;max-width:320px}
+.xpbar{height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:7px;overflow:hidden;
+  box-shadow:0 2px 0 var(--shade)}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--oj));transition:width .35s ease}
+
+/* ── toggles & sliders ── */
+.opts{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:440px}
+.chip{display:flex;align-items:center;gap:7px;border:3px solid var(--ink);border-radius:13px;padding:9px 12px;
+  min-height:44px;cursor:pointer;font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:.03em;
+  color:var(--ink);text-transform:uppercase;touch-action:manipulation;
+  background:linear-gradient(180deg,#FFFFFF,var(--paper));box-shadow:0 4px 0 var(--shade)}
+.chip:active{transform:translateY(2px);box-shadow:0 2px 0 var(--shade)}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip .dot{width:13px;height:13px;border-radius:50%;border:2.5px solid var(--ink);flex:none;background:#FFF}
+.chip:has(input:checked){background:linear-gradient(180deg,#FFF0B0,#FFD05A)}
+.chip:has(input:checked) .dot{background:var(--ok)}
+.volrow{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:11px;
+  letter-spacing:.05em;color:#5C300F;text-transform:uppercase}
+.volrow input[type=range]{-webkit-appearance:none;appearance:none;width:140px;height:26px;background:transparent}
+.volrow input[type=range]::-webkit-slider-runnable-track{height:9px;border-radius:6px;background:var(--paper);
+  border:2.5px solid var(--ink)}
+.volrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-9px;
+  border-radius:50%;background:var(--gold);border:2.5px solid var(--ink)}
+.volrow input[type=range]::-moz-range-track{height:9px;border-radius:6px;background:var(--paper);
+  border:2.5px solid var(--ink)}
+.volrow input[type=range]::-moz-range-thumb{width:22px;height:22px;border:2.5px solid var(--ink);
+  border-radius:50%;background:var(--gold)}
+.schemerow{display:flex;align-items:center;gap:8px;font-family:var(--disp);font-weight:700;font-size:11px;
+  letter-spacing:.05em;color:#5C300F;text-transform:uppercase;flex-wrap:wrap;justify-content:center}
+.btn.seg{padding:10px 14px;min-height:44px;font-size:11px}
+.btn.seg.on{background:linear-gradient(180deg,#FFD874,var(--oj));color:#4A2405}
+
+/* ── scheme-B on-screen controls ─────────────────────────────────
+   Never hides the action: translucent fruit-tinted pads, every target
+   >=56px, all clear of the safe-area insets. */
 #pad{position:absolute;inset:0;z-index:3;display:none;pointer-events:none}
 #pad.show{display:block}
-.padside{position:absolute;bottom:calc(12px + var(--sab));display:flex;gap:10px;align-items:flex-end}
+.padside{position:absolute;bottom:calc(12px + var(--sab));display:flex;gap:11px;align-items:flex-end}
 #padL{left:calc(12px + var(--sal))}
 #padR{right:calc(12px + var(--sar))}
-.pbtn{pointer-events:auto;width:60px;height:60px;border-radius:50%;border:1px solid var(--line);
-  background:rgba(11,18,38,.42);color:var(--bone);font-size:19px;line-height:1;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;touch-action:none;
-  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:transform .06s ease,background .1s ease}
-.pbtn:active,.pbtn.hold{transform:scale(.92);background:rgba(255,201,74,.34)}
-.pbtn.jump{width:78px;height:78px;font-size:24px;background:rgba(255,201,74,.24);border-color:rgba(255,201,74,.5)}
-.pbtn.dash{background:rgba(127,231,255,.18);border-color:rgba(127,231,255,.42)}
-.pbtn.cool{opacity:.42}
-@media (max-height:420px){.pbtn{width:52px;height:52px;font-size:17px}.pbtn.jump{width:66px;height:66px;font-size:21px}}
+.pbtn{pointer-events:auto;width:62px;height:62px;border-radius:50%;border:3px solid rgba(65,35,15,.8);
+  background:rgba(255,246,228,.5);color:#41230F;font-size:20px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;touch-action:none;font-weight:800;
+  box-shadow:0 4px 0 rgba(65,35,15,.45);
+  transition:transform .06s ease,background .1s ease}
+.pbtn:active,.pbtn.hold{transform:translateY(3px);box-shadow:0 1px 0 rgba(65,35,15,.45);
+  background:rgba(255,201,60,.85)}
+.pbtn.jump{width:82px;height:82px;font-size:26px;background:rgba(255,154,46,.62);
+  border-color:rgba(65,35,15,.85)}
+.pbtn.dash{background:rgba(143,221,255,.55)}
+.pbtn.cool{opacity:.45}
+@media (max-height:420px){.pbtn{width:54px;height:54px;font-size:18px}.pbtn.jump{width:68px;height:68px;font-size:22px}}
 
 #pauseBtn{position:absolute;top:calc(6px + var(--sat));right:calc(8px + var(--sar));z-index:4;
-  width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(11,18,38,.55);
-  color:var(--bone);font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;
-  touch-action:manipulation}
+  width:46px;height:46px;border-radius:50%;border:3px solid var(--ink);
+  background:linear-gradient(180deg,#FFFFFF,var(--paper));
+  color:var(--ink);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;
+  touch-action:manipulation;box-shadow:0 4px 0 var(--shade)}
 #pauseBtn.show{display:flex}
-#pauseBtn:active{transform:scale(.92)}
+#pauseBtn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shade)}
 
-/* Rotate hint. The original shipped this CSS as a full-screen modal but
-   never wired it up. Wired up as-designed it covered the Start button on
-   every phone, so it is a NON-BLOCKING bottom banner instead: the
-   container ignores pointer events, only its dismiss button takes them,
-   and it never sits over the menu's buttons. */
+/* ── rotate hint: a non-blocking bottom banner, never over the menu buttons ── */
 #rot{position:absolute;left:50%;transform:translateX(-50%);
   bottom:calc(10px + var(--sab));z-index:6;display:none;align-items:center;gap:11px;
-  padding:9px 12px;border-radius:11px;background:rgba(11,18,38,.94);border:1px solid var(--line);
-  pointer-events:none;max-width:min(92vw,360px)}
+  padding:9px 13px;border-radius:15px;background:var(--cream);border:3px solid var(--ink);
+  box-shadow:0 4px 0 var(--shade);pointer-events:none;max-width:min(92vw,370px)}
 #rot.show{display:flex}
-#rot .ph{width:17px;height:27px;flex:none;border:2px solid var(--amber);border-radius:4px;
+#rot .ph{width:18px;height:28px;flex:none;border:3px solid var(--oj-d);border-radius:6px;
   animation:tip 1.8s ease-in-out infinite}
-#rot .rtxt{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--haze);line-height:1.5;text-align:left}
-#rot .btn{pointer-events:auto;padding:8px 10px;min-height:36px;font-size:8.5px;flex:none}
+#rot .rtxt{font-family:var(--ui);font-weight:700;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-2);line-height:1.5;text-align:left}
+#rot .btn{pointer-events:auto;padding:8px 11px;min-height:38px;font-size:10px;flex:none;box-shadow:0 3px 0 var(--ink)}
 @keyframes tip{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 
-/* boot / loading */
+/* ── splash / loading ────────────────────────────────────────────
+   Doubles as the brand splash: logo, a filling juice glass, tagline. */
 #boot{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:16px;background:#0B1226;z-index:12;transition:opacity .3s ease}
+  gap:14px;z-index:12;transition:opacity .35s ease;
+  background:radial-gradient(120% 80% at 50% 8%,#FFD98A,#FF9A2E 58%,#EC6A10 100%)}
 #boot.gone{opacity:0;pointer-events:none}
-#boot .ring{width:34px;height:34px;border:2px solid rgba(168,184,216,.25);border-top-color:var(--amber);
-  border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-/* Pure-CSS late hint. The whole loading screen is static HTML, so it also
-   shows when JavaScript never runs at all (blocked viewer, sandboxed
-   iframe, restrictive CSP) — in which case no inline watchdog can fire
-   either. This surfaces after 5s using only an animation delay, so the
-   player still gets told something useful with zero JS. */
-#bootHint{opacity:0;animation:lateHint 1s ease 5s forwards;max-width:min(90vw,420px);
-  text-transform:none;letter-spacing:.04em;line-height:1.55}
+/* the loader is a juice glass filling up, not a generic spinner */
+#boot .ring{width:44px;height:56px;border:3.5px solid var(--ink);border-radius:6px 6px 15px 15px;
+  background:rgba(255,255,255,.4);position:relative;overflow:hidden;box-shadow:0 4px 0 var(--shade)}
+#boot .ring::after{content:"";position:absolute;left:0;right:0;bottom:0;height:20%;
+  background:linear-gradient(180deg,var(--gold),var(--oj-d));animation:fillUp 1.5s ease-in-out infinite}
+@keyframes fillUp{0%{height:14%}50%{height:82%}100%{height:14%}}
+#bootHint{opacity:0;animation:lateHint 1s ease 5s forwards;max-width:min(90vw,430px);
+  text-transform:none;letter-spacing:.02em;line-height:1.55;font-size:11px}
 @keyframes lateHint{to{opacity:1}}
 
-/* transient sound-enabled toast */
+/* ── toast ── */
 #snack{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--sab));z-index:8;
-  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-  padding:9px 14px;border-radius:9px;background:rgba(11,18,38,.9);border:1px solid var(--line);
-  color:var(--amber);opacity:0;transition:opacity .25s ease;pointer-events:none;text-align:center;
-  max-width:min(88vw,340px)}
+  font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  padding:10px 16px;border-radius:14px;background:var(--cream);border:3px solid var(--ink);
+  color:var(--ink);opacity:0;transition:opacity .25s ease;pointer-events:none;text-align:center;
+  box-shadow:0 4px 0 var(--shade);max-width:min(88vw,350px)}
 #snack.show{opacity:1}
 
-.guide{display:grid;gap:4px;font-family:var(--mono);font-size:clamp(9px,1.6vh,10.5px);color:var(--haze);
-  letter-spacing:.05em;text-align:center;line-height:1.6}
-.guide b{color:var(--amber);font-weight:500}
-/* run-over breakdown: label left, value right, one row per line */
-#dStats{display:grid;gap:1px;width:100%;max-width:330px;margin:0 auto;
-  font-size:clamp(8.5px,1.5vh,10.5px)}
+/* ── how-to-play card ── */
+.guide{display:grid;gap:5px;font-family:var(--ui);font-weight:700;font-size:clamp(10px,1.7vh,12px);
+  color:var(--ink);letter-spacing:.01em;text-align:center;line-height:1.55;
+  background:var(--cream);border:3px solid var(--ink);border-radius:15px;padding:9px 13px;
+  box-shadow:0 4px 0 var(--shade);max-width:min(94vw,430px)}
+.guide b{color:#B4530A;font-weight:800}
+
+/* ── run-over breakdown ── */
+#dStats{display:grid;gap:2px;width:100%;max-width:340px;margin:0 auto;
+  font-size:clamp(9.5px,1.6vh,11.5px);background:var(--cream);border:3px solid var(--ink);
+  border-radius:15px;padding:8px 12px;box-shadow:0 4px 0 var(--shade);text-transform:none}
 .drow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
-  border-bottom:1px solid rgba(168,184,216,.12);padding:1px 0}
-.drow i{font-style:normal;color:var(--haze);letter-spacing:.09em}
-.drow b{font-weight:600;color:var(--bone);text-align:right;letter-spacing:.05em}
-.warnrow{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--rose);text-align:center;
+  border-bottom:2px solid rgba(65,35,15,.14);padding:2px 0}
+.drow:last-child{border-bottom:none}
+.drow i{font-style:normal;color:var(--ink-2);letter-spacing:.05em;text-transform:uppercase;font-size:.88em}
+.drow b{font-weight:800;color:var(--ink);text-align:right}
+.warnrow{font-family:var(--ui);font-weight:800;font-size:10px;letter-spacing:.06em;color:#B4102F;text-align:center;
   text-transform:uppercase;margin:0}
+
+/* ── reduced motion: honour the OS switch as well as Calm Mode ── */
+@media (prefers-reduced-motion:reduce){
+  .logo .drop,#boot .ring::after,#rot .ph{animation:none}
+  .btn,.card,.chip,.pbtn{transition:none}
+}
