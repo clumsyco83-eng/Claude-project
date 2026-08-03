@@ -166,10 +166,12 @@ indicators.
 ### Save migration
 
 The roster was renamed, so a save from an earlier build lists hero ids
-that no longer exist. `adopt()` drops them and grants the six launch
-heroes, so **a returning player is never left with a smaller roster than
-a new one**. Coins, XP, best distance, awards, fruit and streak are all
-preserved untouched.
+that no longer exist. `adopt()` drops them, grants the six launch heroes,
+and then tops the roster back up to its **original size** with the
+cheapest heroes the player does not already own. A returning player
+therefore ends up with at least as many heroes as they had, and never
+fewer than a brand-new player. Coins, XP, best distance, awards, fruit,
+brew, streak and all seven settings are preserved untouched.
 
 ### Bugs fixed on the way
 

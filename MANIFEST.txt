@@ -6,17 +6,17 @@ Canonical source: jumpjuice.html.  split/ and dist/ are GENERATED.
 .gitignore                                                 14 bytes
 AUDIT.md                                                 6972 bytes
 HANDOFF.md                                              10608 bytes
-MANIFEST.txt                                             2494 bytes
+MANIFEST.txt                                             4719 bytes
 README.md                                               12444 bytes
 REPORT.md                                               30137 bytes
-START-HERE.md                                           14458 bytes
+START-HERE.md                                           14635 bytes
 dist/hosted-sim.html                                   137185 bytes
-dist/jumpjuice-artifact.html                           264760 bytes
+dist/jumpjuice-artifact.html                           265644 bytes
 docs/ART-DIRECTION.md                                    6092 bytes
 docs/ASSET-INVENTORY.md                                  6824 bytes
 docs/ASSET-PROMPTS.md                                   11762 bytes
-docs/QA-REPORT.md                                        7972 bytes
-jumpjuice.html                                         269509 bytes
+docs/QA-REPORT.md                                        8197 bytes
+jumpjuice.html                                         270393 bytes
 shots/android-portrait-1-menu.png                      191751 bytes
 shots/android-portrait-2-play-juice.png                378484 bytes
 shots/android-portrait-4-boss-stun.png                 169279 bytes
@@ -58,8 +58,8 @@ shots3/5-boot-fatal.png                                 89993 bytes
 split/README.md                                          2191 bytes
 split/boot.js                                            5027 bytes
 split/index.html                                        11270 bytes
-split/jumpjuice.css                                     19483 bytes
-split/jumpjuice.js                                     233248 bytes
+split/jumpjuice.css                                     19674 bytes
+split/jumpjuice.js                                     233941 bytes
 test/balance.mjs                                        17598 bytes
 test/build-artifact.mjs                                  2816 bytes
 test/economy.mjs                                         6121 bytes
@@ -71,4 +71,4 @@ test/smoke.mjs                                          15527 bytes
 test/soak.mjs                                            4760 bytes
 test/split.mjs                                           3809 bytes
 
-Totals: 67 files, 11474267 bytes
+Totals: 67 files, 11479546 bytes

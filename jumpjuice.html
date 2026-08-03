@@ -123,8 +123,11 @@ canvas{display:block;touch-action:none}
 @keyframes dropBob{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-9%) rotate(4deg)}}
 .tagline{font-family:var(--disp);font-weight:700;font-size:clamp(10px,1.9vh,14px);letter-spacing:.1em;
   text-transform:uppercase;color:#FFF8E8;text-align:center;margin:0;
-  text-shadow:0 2px 0 rgba(120,58,10,.55)}
-.tagline b{color:var(--gold);font-weight:800}
+  text-shadow:0 2px 0 rgba(90,42,6,.75)}
+/* the accent needs its own ink line: gold on the orange menu ground is
+   too close in luminance to read at 12px without one */
+.tagline b{color:var(--gold);font-weight:800;
+  -webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill}
 
 /* ── headings & body ── */
 .big{font-family:var(--disp);font-size:clamp(26px,7vh,48px);font-weight:800;margin:0;text-align:center;
@@ -779,15 +782,28 @@ function adopt(raw){
       }
     }
   }
+  /* ── ROSTER MIGRATION ───────────────────────────────────────────
+     The cast was renamed in the visual redesign, so a save written by an
+     earlier build lists hero ids that no longer exist and cannot be
+     drawn. Dropping them silently would take heroes a player had already
+     unlocked, so instead:
+       1. keep every id that still exists
+       2. always grant the six launch heroes
+       3. top the roster back up to its original SIZE with the cheapest
+          heroes the player does not already own
+     A returning player therefore ends up with at least as many heroes as
+     they had, and never fewer than a brand-new player. Coins, XP, awards,
+     fruit, streak and best distance are untouched. */
   const ids=new Set(CHARS.map(c=>c.id));
-  const un=Array.isArray(raw.unlocked)?raw.unlocked.filter(v=>ids.has(v)):[];
-  /* The roster was renamed in the visual redesign, so a save written by an
-     earlier build lists hero ids that no longer exist. Those entries are
-     dropped by the filter above (they cannot be drawn), but the six launch
-     heroes are always granted, so a returning player is never left with a
-     smaller roster than a brand-new one. Coins, XP, awards, fruit and the
-     best distance are all untouched. */
-  SAVE.unlocked=[...new Set(STARTERS.concat(un))];
+  const rawUn=Array.isArray(raw.unlocked)?[...new Set(raw.unlocked)]:[];
+  const kept=rawUn.filter(v=>ids.has(v));
+  const owned=new Set(STARTERS.concat(kept));
+  const want=Math.max(rawUn.length,owned.size);
+  if(owned.size<want){
+    const spare=CHARS.slice().sort((a,b)=>a.rar-b.rar).filter(c=>!owned.has(c.id));
+    for(let i=0;i<spare.length&&owned.size<want;i++)owned.add(spare[i].id);
+  }
+  SAVE.unlocked=[...owned];
   SAVE.sel=ids.has(raw.sel)&&SAVE.unlocked.includes(raw.sel)?raw.sel:SAVE.unlocked[0];
 }
 function load(){

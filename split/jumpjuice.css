@@ -98,8 +98,11 @@ canvas{display:block;touch-action:none}
 @keyframes dropBob{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-9%) rotate(4deg)}}
 .tagline{font-family:var(--disp);font-weight:700;font-size:clamp(10px,1.9vh,14px);letter-spacing:.1em;
   text-transform:uppercase;color:#FFF8E8;text-align:center;margin:0;
-  text-shadow:0 2px 0 rgba(120,58,10,.55)}
-.tagline b{color:var(--gold);font-weight:800}
+  text-shadow:0 2px 0 rgba(90,42,6,.75)}
+/* the accent needs its own ink line: gold on the orange menu ground is
+   too close in luminance to read at 12px without one */
+.tagline b{color:var(--gold);font-weight:800;
+  -webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill}
 
 /* ── headings & body ── */
 .big{font-family:var(--disp);font-size:clamp(26px,7vh,48px);font-weight:800;margin:0;text-align:center;

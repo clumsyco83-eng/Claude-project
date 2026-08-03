@@ -97,9 +97,12 @@ Exercised in Chromium across the five device profiles:
 - Boot from a clean state; boot with a corrupted save; boot with
   `localStorage` throwing — all recover, no hang.
 - A save written by the pre-redesign build loads. Coins, XP, best
-  distance, awards, fruit and streak all survive. Hero ids that no longer
-  exist are dropped and the six launch heroes are granted, so a returning
-  player is never left with a smaller roster than a new one.
+  distance, awards, fruit, brew, streak and all seven settings survive.
+  Hero ids that no longer exist are dropped, the six launch heroes are
+  granted, and the roster is topped back up to its original **size** with
+  the cheapest unowned heroes — so a returning player ends up with at
+  least as many heroes as they had, and never fewer than a new player.
+  Verified for 6-hero, 14-hero, empty, malformed and current-build saves.
 - All 34 hero portraits render in the roster; all 34 render in play.
 - All 12 enemies spawn, animate, take a hit flash and die.
 - All 4 bosses spawn, telegraph, reach phase 2 and 3, stun, and are
