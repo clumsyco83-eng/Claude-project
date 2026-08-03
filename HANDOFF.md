@@ -21,15 +21,25 @@ Bosses recur from 350 m, then every +550 m.
 
 | Path | What |
 |---|---|
-| `jumpjuice.html` | **The game.** The only file that matters to ship. |
-| `dist/jumpjuice-artifact.html` | Body-only build for hosting (see below) |
+| `jumpjuice.html` | **CANONICAL SOURCE.** The whole game. Edit this and nothing else. |
+| `split/*` | **GENERATED** by `test/split.mjs` (except `split/README.md`) |
+| `dist/jumpjuice-artifact.html` | **GENERATED** body-only build for hosting |
+| `README.md` | How to run/build/test, balance tables, orientation, save format |
 | `test/smoke.mjs` | 60 assertions × 5 device profiles |
-| `test/features.mjs` | 34 assertions covering the upgrade pass |
+| `test/features.mjs` | 36 assertions covering the upgrade pass |
 | `test/hostile.mjs` | 19 crippled-browser cases — proves boot can't hang |
+| `test/balance.mjs` | 82 assertions — the balance/systems contract |
+| `test/genvalidate.mjs` | 10k + 10k procedural fairness sweep, seeded |
+| `test/economy.mjs` | coins/min + time-to-unlock simulation |
+| `test/soak.mjs` | long-run memory/stability soak |
+| `test/split.mjs` | jumpjuice.html → split/ |
 | `test/build-artifact.mjs` | Produces the hosted build |
-| `REPORT.md` | Full bug list (43 found) + every fix, and the upgrade log |
+| `REPORT.md` | Full bug list + every fix, upgrade log, polish-pass log |
 | `AUDIT.md` | System-by-system checklist of all 37 systems |
-| `shots/`, `shots2/` | Screenshots on iPhone / Android / desktop |
+| `shots/`, `shots2/`, `shots3/` | Screenshots on iPhone / Android / desktop |
+
+**Always re-run `node test/split.mjs` after editing `jumpjuice.html`,** or the
+split build ships stale code.
 
 ## Commands
 
@@ -37,9 +47,16 @@ Bosses recur from 350 m, then every +550 m.
 node test/smoke.mjs --device=iphone     # desktop | edge | iphone | android | tablet
 node test/features.mjs
 node test/hostile.mjs
+node test/balance.mjs
+node test/genvalidate.mjs               # 10k + 10k sequences (~47s)
+node test/economy.mjs
+node test/soak.mjs --min=30
+node test/split.mjs                     # → split/
 node test/build-artifact.mjs            # → dist/jumpjuice-artifact.html
 ```
-All currently pass: **60×5 + 34 + 19 cases, zero JS errors.**
+All currently pass: **60×5 + 36 + 19 + 82 assertions, 20,000 generated
+sequences, zero JS errors** — against both the single file and `split/`.
+Every script takes `--file=split/index.html`.
 
 Playwright is at `/opt/node22/lib/node_modules/playwright`, Chromium at
 `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
@@ -62,15 +79,20 @@ jump, wall jump, dash (10f, 48f cooldown). Fixed 60 Hz sim with a smooth
 
 **Juice Mode** — meter fills from orbs (+3.4), crystals (+26), perfect landings
 (+4/+12), enemy hits (+6/+18); all gains funnel through `gainJuice()`.
-At 100% (60% under the JUICERUSH daily modifier): 8 s of invincibility,
+At 100% (60% under the JUICERUSH daily modifier): **12 s** of invincibility
+(Bolt 9.75 s), extendable **+0.5 s per crystal** collected while juiced up to a
+hard **15 s** cap (`JUICE_BASE_F` / `JUICE_BOLT_F` / `JUICE_CAP_F` /
+`JUICE_EXT_F`),
 infinite jumps, ×2 damage, ×2 points, 4.2× magnet, 1.24× size with an orbiting
 aura, a **landing shockwave that damages nearby enemies and the boss**, a
-48-frame slow-motion entrance, and a 1.5 s wind-down warning.
+48-frame slow-motion entrance, and a **3 s** wind-down warning with a distinct
+final-second cue.
 
 **Heroes** — 34 total. Five headliners: Blip (balanced), **Bolt** (+25% speed,
-shorter juice), **Frost** (enemies 45% slower, ice immune), **Inferno** (×2
-damage, floatier), **Nature** (+60% juice). The other 29 have their own
-passives, all rewritten to be strongly felt. Active ability is named on the HUD.
+9.75 s juice but +30% meter gain and ×3 juiced multiplier), **Frost** (enemies
+45% slower, ice immune), **Inferno** (**fire immune + flame-burst landings** —
+no longer a damage clone of Slayer), **Nature** (+60% juice). No *paid* hero is
+left without a passive. Active ability is named on the HUD.
 
 **Bosses** — 4 kinds, own silhouette/palette/projectile/minion each, rotating by
 zone; the first of a run is always the Juice Monster.
@@ -148,7 +170,7 @@ Currently hosted privately at
 `https://claude.ai/code/artifact/20a33636-5432-4ff7-bda9-a85b7f528d6d`.
 Any static host works — GitHub Pages, Netlify drop, etc.
 
-Branch: `claude/jump-juice-full-audit-u4r4lj` in `clumsyco83-eng/claude-project`.
+Branch: `claude/jump-juice-polish-balance-eeikjx` in `clumsyco83-eng/claude-project`.
 Baseline `ae4c263` is the original file, unmodified, for diffing.
 
 ## Open ideas, not built
@@ -157,3 +179,42 @@ Baseline `ae4c263` is the original file, unmodified, for diffing.
 - Deeper Juice Lab: recipe discovery, permanent upgrade levels per juice
 - Two more bosses (one per biome); boss-specific arenas
 - Music that changes per biome rather than only per juice state
+
+---
+
+## Polish & balance pass (2026-08-03) — what changed
+
+Read `README.md` first: it now carries the balance tables, the orientation
+decision, the control schemes and the save format.
+
+8. **`jumpjuice.html` is the only file to edit.** `split/` and `dist/` are
+   generated. Re-run `node test/split.mjs` after every change.
+
+9. **The boot failure screen distinguishes fatal from recoverable.** A fatal
+   error (null canvas) offers Reload + Copy error details and deliberately
+   offers **no** way into the game — the old "Continue anyway" dropped players
+   into a frozen black screen. `window.__jjaFatal` latches so a late
+   `bootDone()` cannot wipe the message. Don't reintroduce a blanket skip.
+
+10. **Settings live in `SAVE.opt`** and are written by `syncOpts()` behind the
+    `optsReady` gate (so the startup call can't save defaults over a real save).
+    `OPT_DEF` is the single source of truth for defaults and migration.
+
+11. **`REACH` is the reachability budget**, derived from the real physics
+    constants (single jump ~158px/120px; double ~262px/213px). The NODBL caps
+    (120px/88px) sit under it with a timing margin. `test/genvalidate.mjs`
+    enforces this over 20,000 sequences and is mutation-tested — if you loosen
+    a clamp, it will fail.
+
+12. **Difficulty is staged, not linear.** `STAGES` + `diff()` + `stageOf()`.
+    Keep it continuous and capped at 1, or `genvalidate` fails.
+
+13. **The Juice Mode cap is absolute.** Enforced in both `juiceLen()` and
+    `extendJuice()`. Only crystals extend, and only while already juiced.
+
+14. **Hero prices came from `test/economy.mjs`, not intuition.** If you change
+    coin income, re-run it — the target is a first paid hero in 10–20 minutes
+    for an average player.
+
+15. **`stunLen(b)` is the one definition of the boss weak-point window.** The
+    HUD bar and the state machine both read it; they had drifted before.
