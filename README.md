@@ -1,9 +1,34 @@
-# Jump Juice Adventure
+# Jump Juice
 
-A single-file HTML5 endless runner. Zero runtime dependencies, no build step
-to play. Canvas 2D, hand-rolled WebAudio, `localStorage` saves.
+**FILL THE METER. TRIGGER JUICE MODE. GO FURTHER.**
 
-**Core loop:** fill the meter → trigger **JUICE MODE** → go further.
+A single-file HTML5 endless runner set in a living fruit-and-juice
+universe: cute juice heroes against the Spoiled Fruits. Zero runtime
+dependencies, no build step to play. Canvas 2D, hand-rolled WebAudio,
+`localStorage` saves.
+
+| | |
+|---|---|
+| Heroes | 34, six free from launch — **OJ, Straw, Kiwi, Grape, Mango, Pine** |
+| Enemies | 12 Spoiled Fruits across nine behaviour families |
+| Bosses | Watermelon King → Grape Wizard → Pineapple Tank → Soda Monster |
+| Worlds | 8, four parallax layers each |
+| Size | ~255 KB, no image files, no network required |
+
+---
+
+## Documentation
+
+| Doc | What it is |
+|---|---|
+| `START-HERE.md` | Cold-start handoff. Read first. |
+| `docs/ART-DIRECTION.md` | The art bible — read before any visual change |
+| `docs/ASSET-INVENTORY.md` | Every asset and where it is defined |
+| `docs/ASSET-PROMPTS.md` | Image-generation prompt pack for a painted-art upgrade |
+| `docs/QA-REPORT.md` | Redesign QA: suites, performance, layout, bugs, limitations |
+| `AUDIT.md` | Pre-redesign audit + the transformation checklist |
+| `HANDOFF.md` | Systems overview |
+| `REPORT.md` | Full bug log |
 
 ---
 

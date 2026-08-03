@@ -1,4 +1,4 @@
-# Jump Juice Adventure — split source
+# Jump Juice — split source
 
 Same game as `jumpjuice.html`, separated into standard files.
 

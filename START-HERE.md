@@ -1,4 +1,4 @@
-# START HERE — Jump Juice Adventure handoff
+# START HERE — Jump Juice handoff
 
 **Paste this file into a new chat first.** It is the complete cold-start
 context: what the project is, which files matter, what state it is in, what
@@ -10,15 +10,21 @@ Everything referenced here is in this zip.
 
 ## 0. The one-paragraph version
 
-Jump Juice Adventure is a **single-file HTML5 endless runner** — Canvas 2D,
+Jump Juice is a **single-file HTML5 endless runner** — Canvas 2D,
 hand-rolled WebAudio, `localStorage` saves, zero runtime dependencies, no
 build step required to play. The core loop is **fill the meter → trigger
 JUICE MODE → go further**. `jumpjuice.html` is the whole game and the only
-file you edit; everything in `split/` and `dist/` is generated from it. The
-last work done was a polish and balance pass (2026-08-03) that fixed 13
-confirmed bugs and retuned Juice Mode, difficulty, the daily modifiers, the
-heroes and the economy. All test suites pass. **Nothing has been tested on
-real phone hardware.**
+file you edit; everything in `split/` and `dist/` is generated from it.
+
+The last work done was a **complete visual redesign** (2026-08-03) that
+replaced the entire art direction with an original fruit-monster
+universe: six named launch heroes, twelve Spoiled Fruits enemies, four
+named bosses, eight fruit worlds, a new interface design system, a logo
+and an app icon. Simulation, physics, save format, resilience and the
+boot watchdog are unchanged. All test suites pass.
+**Nothing has been tested on real phone hardware.**
+
+Read `docs/ART-DIRECTION.md` before touching anything visual.
 
 ---
 
@@ -26,7 +32,7 @@ real phone hardware.**
 
 ```
 repo   : clumsyco83-eng/Claude-project
-branch : claude/jump-juice-polish-balance-eeikjx
+branch : claude/jump-juice-visual-redesign-vjua89
 HEAD   : 44895e7  Add audio-cue coverage, 44px scheme buttons, and the 30-minute soak result
          96e1aaf  Polish & balance pass: Juice Mode 12s, staged difficulty, fair generation
          5b08479  Add split CSS/JS/HTML build   <- state before this pass
@@ -49,7 +55,11 @@ Both commits are pushed. No pull request has been opened.
 | `README.md` | Run/build/test, balance tables, orientation, save format |
 | `REPORT.md` | Full bug log — original audit, upgrade pass, and the 2026-08-03 polish pass |
 | `HANDOFF.md` | Systems overview + "things to know before changing anything" |
-| `AUDIT.md` | System-by-system checklist of all 37 systems |
+| `AUDIT.md` | Audit of the pre-redesign build + the transformation checklist |
+| `docs/ART-DIRECTION.md` | **The art bible. Read before any visual change.** |
+| `docs/ASSET-INVENTORY.md` | Every hero, enemy, boss, world, prop and icon, and where it is defined |
+| `docs/ASSET-PROMPTS.md` | Image-generation prompt pack for a painted-art upgrade |
+| `docs/QA-REPORT.md` | Redesign QA: suites, performance, layout, bugs fixed, limitations |
 | `shots3/` | Screenshots proving the current UI state |
 
 > **The #1 way to break this project:** editing a file in `split/` or `dist/`.
@@ -120,79 +130,56 @@ Append `?debug=1` to the URL. Off for normal players. Gives:
 
 ## 6. Current state — what the last pass changed
 
-### 13 confirmed bugs fixed
+A complete visual transformation. **No gameplay system was removed.**
 
-1. **Fatal boot screen let you into a dead engine.** "Continue anyway"
-   dismissed the overlay even after a fatal failure (null canvas), replacing
-   the explanation with a frozen black screen.
-2. **A startup throw erased its own error** — `catch` called `reveal()` then
-   `bootDone()`, hiding the message ~0ms later.
-3. **No player setting was ever persisted** — all 7 reset on every reload.
-4. **No Double Jump generated impossible terrain** — 211px gaps against a
-   158px single-jump reach; 150px rises against a 120px apex.
-5. **Boss stun-window bar lied in phase 3** — HUD assumed 155 frames, the
-   state machine closed the window at 95.
-6. **Falling bypassed `hurt()`** — skipped the shield, i-frames and the
-   hearts-remaining readout.
-7. **`bossSeen` leaked across runs.**
-8. **`FAST` was labelled "Double speed" but ran ×1.34.**
-9. **Inferno and Slayer shared one "×2 damage" passive.**
-10. **Two paid heroes had no passive at all** (Cactus, Squid).
-11. **Crystals were wasted during Juice Mode** — the meter is frozen while
-    juiced, so `gainJuice(26)` did nothing.
-12. **`fireproof` was defined but assigned to no hero.**
-13. Duplicated comment block in the boss renderer.
+### Replaced
 
-### Balance now in force
-
-| | Before | After |
+| Layer | Before | After |
 |---|---|---|
-| Juice Mode (standard) | 480f / 8.0s | **720f / 12.0s** |
-| Juice Mode (Bolt) | 288f / 4.8s | **585f / 9.75s** |
-| Juice hard cap | none | **900f / 15.0s** |
-| Juice extension | none | **+0.5s per crystal, while juiced only** |
-| Difficulty | `min(dist/1600,1)` linear | **5 interpolated stages to 6000m** |
-| Turbo Day (`FAST`) | ×1.34, mislabelled ×2 | **×1.25 + 40% coins** |
-| UNCOMMON hero | 900 | **18,000** |
-| MYTHIC hero | 36,000 | **720,000** |
-| Boss reward | `600 + 250n` | **`300 + 90n`** |
-| Boss HP | `6 + 2n` uncapped | `6 + 2n`, **capped 18** |
-| Mission / achievement | 200 / 300 | **2,600 / 2,500** |
+| Ink line | `#0B1226` cold navy | `#41230F` warm brown, one colour everywhere |
+| Heroes | 34 abstract shapes (Blip, Robo, Ninja…) | 34 fruit heroes; **OJ, Straw, Kiwi, Grape, Mango, Pine** free from launch |
+| Enemies | 10 generic (slime, cubebot, laser…) | 12 **Spoiled Fruits**, nine behaviour families |
+| Bosses | Juice Monster / Flame Djinn / Terra Rex / Cyclops Eye | **Watermelon King → Grape Wizard → Pineapple Tank → Soda Monster** |
+| Worlds | 7 dark (Forest, Ice, Storm, Space…) | 8 bright fruit worlds with a prop layer and ground materials |
+| Collectibles | amber dot, cyan diamond | Juice Drop, Juice Gem, + shield / magnet / juice-bomb power-ups |
+| UI | dark navy, hairline borders, 9 px monospace | cream panels, ink outlines, chunky buttons with a drop edge |
+| Type | Space Grotesk + monospace | Baloo 2 + Nunito (both SIL OFL) |
+| Brand | none | logo, tagline lockup, splash, app icon, favicon |
 
-Bolt's shorter window is compensated: **+30% meter gain**, **×3** juiced score
-multiplier. Inferno is now `firelord` (fire immunity + flame-burst landings);
-damage belongs to Slayer alone, which gains +1 into a stunned boss. New
-passives: `aircontrol`, `shield`, `walljump`, `combo`, `fruity`.
+### Added gameplay
 
-Difficulty stages: 1 (0–400m, d 0→0.10) · 2 (400–1000m, →0.34) ·
-3 (1000–2000m, →0.62) · 4 (2000–3500m, →0.86) · 5 (3500m+, →1.00).
+Three new hero abilities, each isolated and small:
 
-### Controls
+* **Straw — Triple Jump.** `maxJ` becomes 3. NODBL still clamps to 1, so
+  the daily modifier is never overridden and the generator's reachability
+  budget stays honest.
+* **Grape — Grape Blast.** The dash input fires a bouncing juice orb.
+  Reuses the existing `shots` array with a `friendly` flag, so there is
+  one projectile list and one compaction pass, not two.
+* **Pine — Pineapple Slam.** A hard landing (impact > 0.45) emits a
+  damaging shockwave. Radius sits between Inferno's flame burst and the
+  Juice Mode shockwave, and does not reach the boss.
 
-Dash was a downward **flick** that shared input space with steering. It is now
-a deliberate **170ms hold**, resolved on the frame clock (a still finger emits
-no `pointermove`, so a move-driven test could never have fired). Steering past
-the threshold permanently cancels a pending dash; releasing early cancels it,
-so dash never fires on release. A charge ring shows it arming.
+Plus three power-up pickups (shield, coin magnet, juice bomb) with HUD
+indicators.
 
-A second **on-screen button scheme** was added (steering pad left, separate
-jump and dash right, ≥56px, safe-area aware) and is saved with the other
-settings. Both schemes clear all held input on blur, tab-hide, pause and
-rotation. Rotating auto-pauses a live run.
+### Save migration
 
-### Saves
+The roster was renamed, so a save from an earlier build lists hero ids
+that no longer exist. `adopt()` drops them and grants the six launch
+heroes, so **a returning player is never left with a smaller roster than
+a new one**. Coins, XP, best distance, awards, fruit and streak are all
+preserved untouched.
 
-Settings now live in `SAVE.opt` (`snd, vib, calm, bat, inv, mod, vol, scheme`)
-behind an `optsReady` gate so startup cannot overwrite a real save. `adopt()`
-coerces every field; a save with **no `opt` block** lands on validated
-defaults; an unknown scheme falls back to `gesture`.
+### Bugs fixed on the way
 
-> **Consequence to remember:** saves are fully preserved — coins, heroes, XP,
-> achievements and unlocks all carry over, nothing is taken away — but because
-> prices were rescaled, a returning player's banked coins buy fewer *new*
-> heroes than before.
-
----
+`makeGlow()` faded to transparent **black** — canvas interpolates
+un-premultiplied, so every glowing pickup carried a grey halo (invisible
+on the old dark backdrop, obvious on bright worlds). A centred flex
+overlay clipped its own top on short screens with no way to scroll back.
+The roster grid squeezed its rows instead of scrolling, halving every
+portrait. Cloud puffs shared one path and grew a spike. Start sat below
+the fold on a 390×844 phone. Full list in `docs/QA-REPORT.md` §4.
 
 ## 7. Verification status
 
@@ -202,9 +189,14 @@ defaults; an unknown scheme falls back to `gesture`.
 | `features.mjs` | 36/36 |
 | `hostile.mjs` | 19/19 (stricter contract) |
 | `balance.mjs` | 82/82 |
-| `genvalidate.mjs` | 10,000 + 10,000 sequences, **304,356 platforms, 0 invalid** |
-| `economy.mjs` | first paid hero 13.3 min — inside the 10–20 min target |
-| `soak.mjs --min=30` | 30 min, 46 km, heap 9.5MB→9.5MB (ratio 1.00), 0 errors |
+| `genvalidate.mjs` | 10,000 + 10,000 sequences, **121,910 platforms, 0 invalid** |
+| `economy.mjs` | first paid hero 13.1 min — inside the 10–20 min target |
+| `soak.mjs --min=3` | 3 min, 4.4 km, heap ratio 1.00, DOM stable, 0 errors |
+
+Frame cost was measured against the pre-redesign build on the same
+machine: the redesign runs at 60 fps on the iPhone 13 profile where the
+baseline ran at 56.4, with a lower worst frame. Full numbers in
+`docs/QA-REPORT.md` §2.
 
 All suites pass against **both** `jumpjuice.html` and the regenerated
 `split/` build. `genvalidate.mjs` was mutation-tested: removing the NODBL gap
@@ -234,14 +226,21 @@ clamp made it fail 120/120, so it provably detects the bug class it guards.
    constants (single jump ~158px/120px, double ~262px/213px). The NODBL caps
    (120px/88px) sit under it with a timing margin. Loosen a clamp and
    `genvalidate.mjs` will fail.
-9. **The Juice Mode cap is absolute** — enforced in both `juiceLen()` and
+9. **Read `docs/ART-DIRECTION.md` before any visual change.** One ink
+   colour (`#41230F`), one shading recipe (`body()`), one eye rig
+   (`eyes()`), no `shadowBlur` in the frame path. Canvas text is always
+   drawn through `outText()` or on a `chip()` — bare text fails on at
+   least three of the eight worlds.
+10. **`makeGlow()` must fade to its own colour at alpha 0**, never to
+    transparent black. Canvas gradients interpolate un-premultiplied.
+11. **The Juice Mode cap is absolute** — enforced in both `juiceLen()` and
    `extendJuice()`. Only crystals extend, and only while already juiced.
-10. **`stunLen(b)` is the single definition of the boss weak-point window.**
+12. **`stunLen(b)` is the single definition of the boss weak-point window.**
     The HUD bar and the state machine both read it; they had drifted before.
-11. **Hero prices came from `test/economy.mjs`, not intuition.** If you change
+13. **Hero prices came from `test/economy.mjs`, not intuition.** If you change
     coin income, re-run it — the target is a first paid hero in 10–20 minutes
     for an average player.
-12. **The `seeded()` PRNG was investigated and is fine.** Don't "fix" it.
+14. **The `seeded()` PRNG was investigated and is fine.** Don't "fix" it.
 
 ---
 
@@ -266,24 +265,29 @@ clamp made it fail 120/120, so it provably detects the bug class it guards.
 
 Not started, roughly in priority order:
 
-1. **Real-device QA on iOS and Android** — the single biggest gap.
-2. Store-launch prep: app icons, splash screens, screenshots, store copy,
-   a privacy policy, and a wrapper decision (PWA install vs Capacitor shell).
-3. Localisation — all strings are currently inline English.
-4. Ideas explored but deliberately not built: a level-based mode, deeper Juice
-   Lab (recipe discovery, permanent upgrades), two more bosses with their own
-   arenas, per-biome music.
-5. Explicitly **out of scope** for the last pass and still not present: ads,
-   IAP, online accounts, leaderboards, cloud saves, lucky spins, mystery
-   chests, multiplayer.
+1. **Real-device QA on iOS and Android** — still the single biggest gap,
+   and now it also covers the redesigned render path: check the font
+   fallback on a cold offline launch, thermals over 20 minutes, and that
+   the ink line does not look muddy on an OLED at low brightness.
+2. Export the store icon set from the master SVG in `<head>` and produce
+   the Play feature graphic (`docs/ASSET-PROMPTS.md` §6).
+3. Capture store screenshots — `test/shots.mjs` already drives the frames.
+4. Add balance assertions for the three new abilities (triple jump,
+   grape blast, pineapple slam) to `test/balance.mjs`.
+5. Privacy policy and the age-rating questionnaire.
+6. Localisation — all strings are still inline English.
+7. Optional: paint the art. `docs/ASSET-PROMPTS.md` specifies every asset
+   and §7 explains the one-function swap per character.
+8. Explicitly **out of scope** and still not present: ads, IAP, online
+   accounts, leaderboards, cloud saves, revive flow, multiplayer.
 
 ---
 
 ## 11. Suggested opening prompt for the new chat
 
-> I'm continuing work on Jump Juice Adventure, a single-file HTML5 endless
-> runner. I've attached the full project. Read `START-HERE.md` first — it is
-> the complete handoff. `jumpjuice.html` is the canonical source; `split/` and
+> I'm continuing work on Jump Juice, a single-file HTML5 endless runner.
+> I've attached the full project. Read `START-HERE.md` first — it is the
+> complete handoff, and `docs/ART-DIRECTION.md` before any visual change. `jumpjuice.html` is the canonical source; `split/` and
 > `dist/` are generated by `node test/split.mjs` and
 > `node test/build-artifact.mjs`. Do not edit generated files, do not rebuild
 > the game from scratch, and do not remove working features. All test suites

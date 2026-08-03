@@ -1,4 +1,4 @@
-# Jump Juice Adventure — audit report
+# Jump Juice — bug log
 
 Deliverable: `jumpjuice.html` (single file, 2533 lines, 129 KB, no runtime dependencies).
 Baseline for comparison: commit `ae4c263`.
@@ -429,3 +429,70 @@ All suites pass against **both** the canonical file and the regenerated
   Chromium device emulation (iPhone 13, Pixel 5, iPad gen 7).
 * 120Hz / ProMotion timing, real haptics, real iOS audio-unlock, thermal and
   battery behaviour all still need a device pass.
+
+
+---
+
+# Pass 4 — visual redesign (2026-08-03)
+
+Branch `claude/jump-juice-visual-redesign-vjua89`, baseline `57259ed`.
+
+The whole visual identity was replaced with an original fruit-monster
+universe. Scope, checklist and status: `AUDIT.md`. Rules:
+`docs/ART-DIRECTION.md`. Verification: `docs/QA-REPORT.md`.
+
+## Bugs found and fixed during the redesign
+
+**R1 — `makeGlow()` faded to transparent black.**
+Every pre-rendered glow sprite ended its radial gradient at
+`rgba(0,0,0,0)`. Canvas gradients interpolate un-premultiplied, so the
+colour ramp passed through grey before reaching alpha 0. On the old
+navy background that was invisible. On the redesigned bright worlds it
+ringed every juice drop, gem and glowing enemy with a muddy halo.
+*Fix:* the outer stop is now the same colour at alpha 0, derived from
+the input string.
+
+**R2 — a centred flex overlay clipped its own top.**
+`.ov` was `display:flex; justify-content:center; overflow-y:auto`. When
+the content is taller than the container, a centred flex column
+overflows in *both* directions and the top overflow is unreachable by
+scrolling. On a phone the logo lost its head and the first line of the
+menu was gone. *Fix:* `justify-content:flex-start` with `margin-top:auto`
+on the first child and `margin-bottom:auto` on the last — centred when
+there is room, top-aligned and fully scrollable when there is not.
+
+**R3 — the hero roster squeezed its rows instead of scrolling.**
+`.roster` is a grid with `max-height:46vh` and implicit `auto` rows. With
+taller cards the tracks compressed to fit rather than overflowing, so
+`overflow:hidden` on the card clipped every portrait roughly in half and
+the roster never scrolled. *Fix:* `grid-auto-rows:max-content`.
+
+**R4 — cloud puffs grew a spike.**
+Three `ellipse()` calls in one path, filled once: the fill rule bridges
+between sub-paths. Hidden at the old 0.14 alpha, obvious at the new one.
+*Fix:* one `beginPath`/`fill` per puff.
+
+**R5 — Start below the fold on a 390×844 phone.**
+The how-to-play card sat above the buttons, pushing the primary action
+off-screen on first paint. *Fix:* the start screen is ordered logo →
+tagline → progress → buttons → guide → missions, plus a narrow-screen
+type scale.
+
+**R6 — award text disagreed with the roster.**
+"Unlock all 30 runners" against a 34-hero roster (a leftover from an
+earlier expansion). *Fix:* text corrected; the check already used
+`CHARS.length`.
+
+**R7 — Juice Lab brew descriptions inherited progress-track chrome.**
+The description reused the `.it .track` element, which in the new design
+system has a border, a background and `overflow:hidden`, so every brew
+description rendered inside a stray sunken box. *Fix:* a dedicated
+`.desc` row.
+
+## Deliberately not changed
+
+The simulation, the physics constants, the reachability budget, the save
+schema, `adopt()` sanitisation, the boot watchdog, the circuit of daily
+modifiers, the economy numbers and the audio engine. The redesign is a
+presentation-layer change; `genvalidate.mjs`, `balance.mjs` and
+`economy.mjs` all pass unchanged in intent.

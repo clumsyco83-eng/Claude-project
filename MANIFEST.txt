@@ -1,56 +1,74 @@
-JUMP JUICE ADVENTURE — transfer package
-=======================================
-Branch : claude/jump-juice-polish-balance-eeikjx
-HEAD   : 44895e7
-Repo   : clumsyco83-eng/Claude-project
+Jump Juice — file manifest
+==============================
 
-READ START-HERE.md FIRST. It is the complete cold-start handoff.
+Canonical source: jumpjuice.html.  split/ and dist/ are GENERATED.
 
-SOURCE (edit this and nothing else)
-  jumpjuice.html ................ the entire game, canonical source
+.gitignore                                                 14 bytes
+AUDIT.md                                                 6972 bytes
+HANDOFF.md                                              10608 bytes
+MANIFEST.txt                                             2494 bytes
+README.md                                               12444 bytes
+REPORT.md                                               30137 bytes
+START-HERE.md                                           14458 bytes
+dist/hosted-sim.html                                   137185 bytes
+dist/jumpjuice-artifact.html                           264760 bytes
+docs/ART-DIRECTION.md                                    6092 bytes
+docs/ASSET-INVENTORY.md                                  6824 bytes
+docs/ASSET-PROMPTS.md                                   11762 bytes
+docs/QA-REPORT.md                                        7972 bytes
+jumpjuice.html                                         269509 bytes
+shots/android-portrait-1-menu.png                      191751 bytes
+shots/android-portrait-2-play-juice.png                378484 bytes
+shots/android-portrait-4-boss-stun.png                 169279 bytes
+shots/android-portrait-5-victory.png                   144106 bytes
+shots/boot-failure-message.png                          60293 bytes
+shots/boot-nojs.png                                     67628 bytes
+shots/desktop-1-menu.png                                51285 bytes
+shots/desktop-2-play-juice.png                         154849 bytes
+shots/desktop-4-boss-stun.png                          117731 bytes
+shots/desktop-5-victory.png                            103307 bytes
+shots/iphone-landscape-1-menu.png                      170553 bytes
+shots/iphone-landscape-2-play-juice.png                945175 bytes
+shots/iphone-landscape-3-boss-charge.png               321588 bytes
+shots/iphone-landscape-4-boss-stun.png                 336875 bytes
+shots/iphone-landscape-5-victory.png                   372024 bytes
+shots/iphone-portrait-1-menu.png                       204712 bytes
+shots/iphone-portrait-2-play-juice.png                 517403 bytes
+shots/iphone-portrait-4-boss-stun.png                  194563 bytes
+shots/iphone-portrait-5-victory.png                    214258 bytes
+shots/victory-banner.png                               347238 bytes
+shots2/1-menu.png                                      206030 bytes
+shots2/2-juice-lab.png                                 179578 bytes
+shots2/3-heroes.png                                    175287 bytes
+shots2/4-journey.png                                   164111 bytes
+shots2/5-juice-mode.png                                495795 bytes
+shots2/6-boss-eye.png                                  196834 bytes
+shots2/6-boss-flame.png                                197516 bytes
+shots2/6-boss-juice.png                                196111 bytes
+shots2/6-boss-rex.png                                  199627 bytes
+shots2/7-attack-eye.png                                509655 bytes
+shots2/7-attack-flame.png                              383360 bytes
+shots2/7-attack-juice.png                              359849 bytes
+shots2/7-attack-rex.png                                439966 bytes
+shots3/1-juice-debug.png                               857615 bytes
+shots3/2-buttons-scheme.png                            288671 bytes
+shots3/3-pause-settings.png                            210941 bytes
+shots3/4-run-over.png                                  133821 bytes
+shots3/5-boot-fatal.png                                 89993 bytes
+split/README.md                                          2191 bytes
+split/boot.js                                            5027 bytes
+split/index.html                                        11270 bytes
+split/jumpjuice.css                                     19483 bytes
+split/jumpjuice.js                                     233248 bytes
+test/balance.mjs                                        17598 bytes
+test/build-artifact.mjs                                  2816 bytes
+test/economy.mjs                                         6121 bytes
+test/features.mjs                                        7864 bytes
+test/genvalidate.mjs                                     6663 bytes
+test/hostile.mjs                                         6057 bytes
+test/shots.mjs                                           2740 bytes
+test/smoke.mjs                                          15527 bytes
+test/soak.mjs                                            4760 bytes
+test/split.mjs                                           3809 bytes
 
-GENERATED (never edit — rebuilt by the commands below)
-  split/index.html .............. from: node test/split.mjs
-  split/jumpjuice.css ..........  "
-  split/boot.js ................  "
-  split/jumpjuice.js ...........  "
-  dist/jumpjuice-artifact.html .. from: node test/build-artifact.mjs
-  dist/hosted-sim.html .......... hosting simulation harness
-  split/README.md ............... EXCEPTION - hand-maintained
-
-DOCUMENTATION
-  START-HERE.md ................. master handoff — read first
-  README.md ..................... run/build/test, balance tables, save format
-  REPORT.md ..................... full bug log across all three passes
-  HANDOFF.md .................... systems overview + gotchas
-  AUDIT.md ...................... 37-system checklist
-  MANIFEST.txt .................. this file
-
-TESTS AND BUILD SCRIPTS
-  test/split.mjs ................ build: jumpjuice.html -> split/
-  test/build-artifact.mjs ....... build: -> dist/jumpjuice-artifact.html
-  test/smoke.mjs ................ 60 assertions x 5 device profiles
-  test/features.mjs ............. 36 — heroes, bosses, Juice Lab, awards
-  test/hostile.mjs .............. 19 crippled-browser boot cases
-  test/balance.mjs .............. 82 — the balance/systems contract
-  test/genvalidate.mjs .......... 10k + 10k procedural fairness sweep
-  test/economy.mjs .............. coins/min + time-to-unlock simulation
-  test/soak.mjs ................. long-run memory/stability soak
-  test/shots.mjs ................ screenshot capture
-
-SCREENSHOTS
-  shots3/ ....................... CURRENT state (post-polish-pass)
-  shots/, shots2/ ............... earlier passes, kept for reference
-
-QUICK START
-  node test/split.mjs && node test/smoke.mjs --device=iphone
-
-TEST ENVIRONMENT REQUIRED
-  Playwright : /opt/node22/lib/node_modules/playwright
-  Chromium   : /opt/pw-browsers/chromium-1194/chrome-linux/chrome
-  If those paths differ, update executablePath + the import in test/*.mjs
-
-STATUS
-  All suites pass on both builds. 304,356 generated platforms validated.
-  30-min soak: heap flat, 0 errors.
-  NOT verified on real iPhone/Android hardware — emulation only.
+Totals: 67 files, 11474267 bytes

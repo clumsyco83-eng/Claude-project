@@ -1,79 +1,108 @@
-# Jump Juice Adventure — Full System Audit
+# Jump Juice — audit and visual-transformation checklist
 
-Audit target: `jumpjuice.html` (single file, 1569 lines at baseline `ae4c263`).
+Two parts: what the project was before the redesign (§1), and the
+transformation carried out against it (§2).
 
-## Genre note (read this first)
+---
 
-The design brief in the task describes a level-based platformer:
-`Tutorial → Level 1 → Mini enemies → Collectibles → Power-ups → Boss → Victory → Replay`.
+## 1. Audit of the pre-redesign build
 
-The code is **not** that game. It is an **endless auto-scrolling runner**:
-one continuous run, procedurally generated, distance-scored, ending only when
-hearts run out. There are no discrete levels and no terminal "you win" screen.
-Mapping the brief onto what exists:
+Audited at commit `57259ed`.
 
-| Brief term | Actual system |
+| Question | Finding |
 |---|---|
-| Tutorial | did not exist — **added** (first-run contextual coaching) |
-| Level 1 | zone 1 of 7 rotating biomes, every 280 m |
-| Mini enemies | 10 monster types + elite variants |
-| Collectibles | orbs (◈, score+currency) and crystals (♦, 10×) |
-| Fruit | no fruit exists; orbs/crystals are the collectibles |
-| Coins | orbs convert to coins at run end; coins buy runners |
-| Power-ups | Juice Mode meter, bounce pads, 13 runner passives |
-| Lives | 3 hearts (modified by passives / daily modifier) |
-| Boss | recurring "Sky Tyrant" from 350 m, then every +550 m |
-| Victory | did not exist — **added** boss-defeat victory sequence |
-| Replay | run-over screen → restart |
+| Engine / framework | None. Hand-written HTML5, Canvas 2D, hand-rolled WebAudio, `localStorage`. Zero runtime dependencies, no build step required to play. |
+| Language / module system | One classic `<script>`, no modules — deliberate, so `file://` still runs. |
+| Canonical source | `jumpjuice.html` (~199 KB). `split/` and `dist/` are generated. |
+| Resolution / orientation | Virtual canvas: landscape `W = clamp(WH·ar, 620, 1400)`; portrait `W = 540`. Fixed play band `WH`, letterboxed. Both orientations supported. |
+| Asset pipeline | **None.** Every visual is drawn procedurally. No images, no atlases, no fonts beyond one async web font. |
+| Screens | Splash/loading, main menu, hero select, Juice Lab, Juice Journey, pause + settings, gameplay HUD, run-over, rotate hint, toast, boot-failure recovery. |
+| Characters | 34 "runners" — abstract shapes (Blip, Robo, Frog, Ninja, Astro, Ghosty…) with no shared theme. |
+| Enemies | 10 types (slime, spikey, eye, batbot, cubebot, crystal, ghost, vine, spirit, laser) — sci-fi / generic. |
+| Bosses | 4 (Juice Monster, Flame Djinn, Terra Rex, Cyclops Eye), three phases each, one shared painter family. |
+| Worlds | 7 (Forest, Mountain, Ice, Storm, Volcano, Sky, Space), all dark, three parallax ridge bands. |
+| Platforms / props | One grey slab painter for all worlds. No prop layer at all. |
+| Collectibles | Amber dot ("orb"), cyan diamond ("crystal"), four fruit. |
+| Power-ups | None as pickups; only hero passives. |
+| UI system | Dark navy overlays, hairline borders, all-monospace uppercase micro-type, 9–11 px. |
+| Fonts | Space Grotesk (display) + `ui-monospace`. |
+| Logo | The words "JUMP JUICE" in the body font. No mark. |
+| App icon | None. No favicon, no touch icon. |
+| Particles / effects | Sound: ring-buffered particles, trail, popups, rings; pre-rendered glow sprites; no `shadowBlur` in the frame path. |
+| Audio-linked visuals | 24 `sfx` keys already wired to events. |
+| Animation | Procedural from a frame counter. Squash/stretch, hit flash, i-frame blink. |
+| Sprite sheets / formats | None. |
+| Unused / duplicate assets | None found (there are no asset files). `fireproof` was defined but assigned to no hero — a dead passive. |
+| Broken references | None. |
+| Performance | 56–60 fps in emulation, heap flat over 30 min, object arrays bounded. |
+| Tests | smoke 60 ×5 profiles, features 36, balance 82, hostile 19, genvalidate 20k sequences, economy, soak. All green at baseline. |
 
-Everything below is audited against the game that actually exists.
+**Verdict.** Mechanically strong and well tested; visually generic
+programmer art with no brand, no theme coherence and no icon. The
+redesign therefore replaces the presentation layer and leaves the
+simulation, save format, resilience and boot watchdog alone.
 
-## System checklist
+**Risks identified before starting.** (a) The test suites hard-code hero
+ids and the first boss key, so renaming the cast breaks them — they had
+to be updated in step. (b) `genvalidate.mjs` asserts the reachability
+budget, so no ability may exceed a double jump's reach in the generator's
+eyes. (c) Saves reference hero ids, so a rename needs a migration path.
+(d) The HUD is anchored to the screen, not the play band — that must not
+regress. All four were handled; see §2 and `docs/QA-REPORT.md`.
 
-Status key: `OK` verified working · `FIX` was broken, now fixed · `NEW` added
+---
 
-| # | System | Status | Note |
-|---|---|---|---|
-| 1 | Player movement / steering | FIX | steer worked; blur left steer stuck |
-| 2 | Jump | OK | coyote time 5f, input buffer 8f, variable height |
-| 3 | Double jump | FIX | silently disabled 1 day in 6 by hidden daily modifier |
-| 4 | Wall jump | OK | undocumented feature, now taught |
-| 5 | Dash | FIX | `dash` passive was dead code keyed to a nonexistent runner |
-| 6 | Juice Mode | FIX | 6 separate defects — see §Juice |
-| 7 | Enemy AI (10 types) | FIX | laser hitbox, vine ambush, crystal HP bar |
-| 8 | Elite enemies | OK | 8% spawn past 500 m, 16% under MADNESS |
-| 9 | Boss AI | FIX | **redesigned** — was effectively unkillable |
-| 10 | Boss health | FIX | never despawned, no readable damage feedback |
-| 11 | Damage system | OK | i-frames 95f; dash/juice grant immunity |
-| 12 | Collision detection | FIX | swept-Y landing OK; laser + spike edge cases wrong |
-| 13 | Camera | OK | lerped follow with face-lookahead |
-| 14 | Coins | FIX | never persisted in a real browser (no `localStorage`) |
-| 15 | Collectibles (orbs/crystals) | OK | magnet radius scales with juice |
-| 16 | Score | OK | distance in metres, best tracked |
-| 17 | Lives (hearts) | FIX | void respawn could drain every heart in ~2 s |
-| 18 | Game Over | OK | stats, record flag, XP/coin payout |
-| 19 | Victory | NEW | boss-defeat sequence with death anim + fanfare |
-| 20 | Save system | FIX | `window.storage` only — **nothing saved in any browser** |
-| 21 | Mobile controls | FIX | menus could not be scrolled on touch |
-| 22 | Audio (init) | FIX | **root cause of "no sound on my phone"** — see §Audio |
-| 23 | Music | FIX | scheduler runaway after backgrounding the tab |
-| 24 | Sound effects | FIX | 4 new cues; boss/explosion/victory had none |
-| 25 | Particle effects | FIX | unbounded allocation → pooled |
-| 26 | Animations | OK | squash/stretch, rotation, blink timers |
-| 27 | Performance | FIX | `shadowBlur` + per-trail vector redraw dominated frame |
-| 28 | UI / HUD | FIX | HUD sat hundreds of px from the action in portrait |
-| 29 | Pause | FIX | did not auto-pause when the app was backgrounded |
-| 30 | Resume | OK | |
-| 31 | Missions / awards | FIX | award 6 text said "every runner", checked 6 of 30 |
-| 32 | Runner roster (30) | FIX | fresh save had **zero** runners unlocked |
-| 33 | Daily modifiers | FIX | `NOJUICE` deleted Juice Mode; replaced with `JUICERUSH` |
-| 34 | Rare events (6) | OK | fired immediately after boss kills |
-| 35 | Tutorial | NEW | |
-| 36 | Loading screen | NEW | |
-| 37 | Orientation handling | NEW | dead `#rot` CSS existed but was never wired up |
+## 2. Transformation checklist
 
-## Result
-
-`node test/smoke.mjs --device=<desktop|edge|iphone|android|tablet>` — 60 assertions,
-**60/60 on all five profiles**, zero JS errors. Screenshots in `shots/`.
-Full findings and fixes: [REPORT.md](REPORT.md).
+| # | Item | Status |
+|---|---|---|
+| **Phase 1 — audit and checkpoint** | | |
+| 1.1 | Full project inspection | ✅ §1 above |
+| 1.2 | Baseline checkpoint commit | ✅ `57259ed` |
+| 1.3 | Baseline suites re-run green before any change | ✅ 60 / 36 / 82 / 19 |
+| **Phase 2 — art-direction foundation** | | |
+| 2.1 | Palette, ink line, shading, naming rules | ✅ `docs/ART-DIRECTION.md` |
+| 2.2 | Shared painter library (`ink`, `body`, `eyes`, `leafAt`, `droplet`, `splat`…) | ✅ |
+| 2.3 | Typography system (Baloo 2 + Nunito, both SIL OFL) | ✅ |
+| **Phase 3 — brand and menus** | | |
+| 3.1 | Logo | ✅ CSS, live text, works light and dark |
+| 3.2 | App icon + favicon + Apple touch icon | ✅ inline SVG, legible at 32 px |
+| 3.3 | Splash / loading screen | ✅ logo + juice-glass loader |
+| 3.4 | Main menu and navigation | ✅ reordered so Start is above the fold |
+| **Phase 4 — heroes** | | |
+| 4.1 | Six launch heroes (OJ, Straw, Kiwi, Grape, Mango, Pine) | ✅ free from first launch |
+| 4.2 | Remaining 28 heroes reskinned as fruit | ✅ |
+| 4.3 | New abilities: triple jump, grape blast, pineapple slam | ✅ |
+| 4.4 | Collisions unchanged | ✅ `P.w`/`P.h` untouched; genvalidate green |
+| **Phase 5 — enemies and bosses** | | |
+| 5.1 | 12 Spoiled Fruits with distinct silhouettes | ✅ |
+| 5.2 | Variants are gameplay changes, not recolours | ✅ speed / HP per rot type |
+| 5.3 | Four bosses redesigned | ✅ Watermelon King, Grape Wizard, Pineapple Tank, Soda Monster |
+| 5.4 | Mini-bosses | ⚠️ elite variants exist in-engine; the five named mini-bosses are specified in the prompt pack, not modelled |
+| **Phase 6 — worlds** | | |
+| 6.1 | Eight fruit worlds | ✅ |
+| 6.2 | Four parallax layers each | ✅ sky+sun / 3 ridges / props / play |
+| 6.3 | Per-world props, ground materials, weather | ✅ |
+| 6.4 | Platforms, hazards, obstacles rethemed | ✅ incl. visual ground skirt |
+| **Phase 7 — collectibles and Juice Mode** | | |
+| 7.1 | Juice Drop, Juice Gem, Lab Fruit | ✅ |
+| 7.2 | Power-ups: shield, magnet, juice bomb | ✅ with HUD indicators |
+| 7.3 | Revive token | ❌ not implemented — there is no revive flow in the engine; specified in the prompt pack |
+| 7.4 | Juice Mode feedback overhaul | ✅ aura, droplets, speed lines, rim glow |
+| 7.5 | Three-heart display redesigned | ✅ full / spent / low-health pulse, outline retained when spent |
+| **Phase 8 — UI conversion** | | |
+| 8.1 | Every screen on one design system | ✅ |
+| 8.2 | Every icon replaced | ✅ |
+| 8.3 | All interaction states | ✅ rest / hover / pressed / focus / disabled / selected / locked |
+| 8.4 | Responsive layouts verified | ✅ five profiles, see QA report §3 |
+| **Phase 9 — polish and optimisation** | | |
+| 9.1 | Transitions and feedback | ✅ |
+| 9.2 | Texture/frame cost | ✅ no regression; faster on the phone profile |
+| 9.3 | Battery Saver path | ✅ worst frame halved |
+| 9.4 | Unused assets removed | ✅ none existed; dead `fireproof` passive left in place (still referenced by `PASS`/`ABIL` and harmless) |
+| **Phase 10 — final QA** | | |
+| 10.1 | All suites green | ✅ |
+| 10.2 | Console errors | ✅ none |
+| 10.3 | Missing assets / broken buttons / clipping | ✅ four layout bugs found and fixed |
+| 10.4 | Save/load across the rename | ✅ migration in `adopt()` |
+| 10.5 | Real-device pass | ❌ **still outstanding** — emulation only |

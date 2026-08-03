@@ -1,4 +1,4 @@
-# Jump Juice Adventure — handoff
+# Jump Juice — handoff
 
 Paste this into a new chat to pick the project up cold. The playable file is
 `jumpjuice.html` — attach it alongside this document.
