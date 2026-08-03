@@ -78,6 +78,11 @@
       <label class="chip"><span class="dot"></span>Daily modifier<input type="checkbox" id="oMod" checked></label>
     </div>
     <div class="volrow"><span>Volume</span><input type="range" id="oVol" min="0" max="100" value="42"><span id="volNum">42</span></div>
+    <div class="schemerow" id="schemeRow">
+      <span>Touch controls</span>
+      <button class="btn seg" id="schGesture" data-scheme="gesture">Gestures</button>
+      <button class="btn seg" id="schButtons" data-scheme="buttons">Buttons</button>
+    </div>
     <div class="guide" id="gPause"></div>
     <p class="lil" id="audioDiag" style="opacity:.7"></p>
     <p class="warnrow" id="iosNote" style="display:none">iPhone: if you hear nothing, flip the side Silent switch off</p>
@@ -87,9 +92,23 @@
     </div>
   </div>
 
+  <!-- Scheme B: optional on-screen controls. Hidden unless chosen in pause.
+       Steering is a left pad; jump and dash are separate right-hand buttons
+       so a dash can never be mistaken for a jump. -->
+  <div id="pad">
+    <div class="padside" id="padL">
+      <button class="pbtn" id="pLeft" aria-label="Move left">&#9664;</button>
+      <button class="pbtn" id="pRight" aria-label="Move right">&#9654;</button>
+    </div>
+    <div class="padside" id="padR">
+      <button class="pbtn dash" id="pDash" aria-label="Dash">&#187;</button>
+      <button class="pbtn jump" id="pJump" aria-label="Jump">&#9650;</button>
+    </div>
+  </div>
+
   <div id="rot">
     <div class="ph"></div>
-    <div class="rtxt">Rotate to landscape<br>for a wider view</div>
+    <div class="rtxt">Portrait works fine.<br>Landscape shows more of what is ahead.</div>
     <button class="btn" id="bRotOk">Got it</button>
   </div>
 
@@ -99,7 +118,12 @@
     <p class="lil" id="bootTxt">Loading</p>
     <p class="lil" id="bootErr" style="display:none;color:var(--rose);max-width:min(90vw,420px);
        letter-spacing:.04em;text-transform:none;line-height:1.5"></p>
-    <button class="btn" id="bootSkip" style="display:none">Continue anyway</button>
+    <div class="btns" id="bootActs" style="display:none">
+      <button class="btn p" id="bootRetry" style="display:none">Retry</button>
+      <button class="btn" id="bootReload" style="display:none">Reload game</button>
+      <button class="btn" id="bootMenu" style="display:none">Return to menu</button>
+      <button class="btn" id="bootCopy" style="display:none">Copy error details</button>
+    </div>
     <p class="lil" id="bootHint">Still on this screen? Scripts are not running here.
        File previews cannot run games &mdash; including the iPhone one, and iOS Safari
        cannot open local files at all. Open this from a web address, or on a computer.</p>

@@ -26,7 +26,7 @@ const g = await S();
 ok("HUD anchors above the play band (top of screen)", g.safeTop + 4 < g.WY, { safeTop: g.safeTop, WY: g.WY });
 
 /* 2. hero abilities */
-const HEROES = { Bolt: "+25% SPEED", Frost: "ENEMIES SLOWED", Inferno: "×2 DAMAGE", Nature: "+60% JUICE" };
+const HEROES = { Bolt: "+25% SPEED", Frost: "ENEMIES SLOWED", Inferno: "FIRE LORD", Nature: "+60% JUICE" };
 for (const [id, label] of Object.entries(HEROES)) {
   await D(h => window.JJA_DEBUG.setHero(h), id);
   await page.waitForTimeout(150);
@@ -53,10 +53,20 @@ async function gainFor(hero) {
 }
 const gClassic = await gainFor("Blip"), gNature = await gainFor("Nature");
 ok("Nature gains more juice per pickup", gNature > gClassic * 1.5, { classic: gClassic, nature: gNature });
-/* Inferno hits harder */
+/* Damage identity belongs to Slayer alone. Inferno used to share the exact
+   same "x2 damage" passive, which left two headline heroes feeling identical;
+   it is now the fire hero (immunity + flame-burst landings) instead. */
 const dClassic = await D(() => { window.JJA_DEBUG.setHero("Blip"); return window.JJA_DEBUG.probeDamage(); });
+const dSlayer = await D(() => { window.JJA_DEBUG.setHero("Dino"); return window.JJA_DEBUG.probeDamage(); });
 const dInferno = await D(() => { window.JJA_DEBUG.setHero("Inferno"); return window.JJA_DEBUG.probeDamage(); });
-ok("Inferno deals double damage", dInferno === dClassic * 2, { classic: dClassic, inferno: dInferno });
+ok("Slayer deals double damage", dSlayer === dClassic * 2, { classic: dClassic, slayer: dSlayer });
+ok("Inferno no longer duplicates Slayer's damage bonus", dInferno === dClassic,
+   { classic: dClassic, inferno: dInferno });
+const infernoPas = await D(() => {
+  window.JJA_DEBUG.setHero("Inferno");
+  return window.JJA_DEBUG.economy().heroes.find(h => h.id === "Inferno").pas;
+});
+ok("Inferno's passive is fire, not damage", infernoPas === "firelord", infernoPas);
 
 /* 3. bosses: four kinds, first is the Juice Monster, three phases */
 const st0 = await S();

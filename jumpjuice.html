@@ -82,6 +82,29 @@ canvas{display:block;touch-action:none}
   border-radius:50%;background:var(--amber);border:none}
 .volrow input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:rgba(168,184,216,.25)}
 .volrow input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:var(--amber)}
+/* control-scheme segmented picker */
+.schemerow{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.09em;color:var(--haze);text-transform:uppercase;flex-wrap:wrap;justify-content:center}
+.btn.seg{padding:9px 12px;min-height:38px;font-size:9px}
+.btn.seg.on{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
+
+/* Scheme B on-screen controls. Semi-transparent so they never hide the
+   action, but every target is >=56px and clear of the safe-area insets. */
+#pad{position:absolute;inset:0;z-index:3;display:none;pointer-events:none}
+#pad.show{display:block}
+.padside{position:absolute;bottom:calc(12px + var(--sab));display:flex;gap:10px;align-items:flex-end}
+#padL{left:calc(12px + var(--sal))}
+#padR{right:calc(12px + var(--sar))}
+.pbtn{pointer-events:auto;width:60px;height:60px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(11,18,38,.42);color:var(--bone);font-size:19px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;touch-action:none;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:transform .06s ease,background .1s ease}
+.pbtn:active,.pbtn.hold{transform:scale(.92);background:rgba(255,201,74,.34)}
+.pbtn.jump{width:78px;height:78px;font-size:24px;background:rgba(255,201,74,.24);border-color:rgba(255,201,74,.5)}
+.pbtn.dash{background:rgba(127,231,255,.18);border-color:rgba(127,231,255,.42)}
+.pbtn.cool{opacity:.42}
+@media (max-height:420px){.pbtn{width:52px;height:52px;font-size:17px}.pbtn.jump{width:66px;height:66px;font-size:21px}}
+
 #pauseBtn{position:absolute;top:calc(6px + var(--sat));right:calc(8px + var(--sar));z-index:4;
   width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(11,18,38,.55);
   color:var(--bone);font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;
@@ -133,6 +156,13 @@ canvas{display:block;touch-action:none}
 .guide{display:grid;gap:4px;font-family:var(--mono);font-size:clamp(9px,1.6vh,10.5px);color:var(--haze);
   letter-spacing:.05em;text-align:center;line-height:1.6}
 .guide b{color:var(--amber);font-weight:500}
+/* run-over breakdown: label left, value right, one row per line */
+#dStats{display:grid;gap:1px;width:100%;max-width:330px;margin:0 auto;
+  font-size:clamp(8.5px,1.5vh,10.5px)}
+.drow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  border-bottom:1px solid rgba(168,184,216,.12);padding:1px 0}
+.drow i{font-style:normal;color:var(--haze);letter-spacing:.09em}
+.drow b{font-weight:600;color:var(--bone);text-align:right;letter-spacing:.05em}
 .warnrow{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--rose);text-align:center;
   text-transform:uppercase;margin:0}
 </style>
@@ -205,6 +235,11 @@ canvas{display:block;touch-action:none}
       <label class="chip"><span class="dot"></span>Daily modifier<input type="checkbox" id="oMod" checked></label>
     </div>
     <div class="volrow"><span>Volume</span><input type="range" id="oVol" min="0" max="100" value="42"><span id="volNum">42</span></div>
+    <div class="schemerow" id="schemeRow">
+      <span>Touch controls</span>
+      <button class="btn seg" id="schGesture" data-scheme="gesture">Gestures</button>
+      <button class="btn seg" id="schButtons" data-scheme="buttons">Buttons</button>
+    </div>
     <div class="guide" id="gPause"></div>
     <p class="lil" id="audioDiag" style="opacity:.7"></p>
     <p class="warnrow" id="iosNote" style="display:none">iPhone: if you hear nothing, flip the side Silent switch off</p>
@@ -214,9 +249,23 @@ canvas{display:block;touch-action:none}
     </div>
   </div>
 
+  <!-- Scheme B: optional on-screen controls. Hidden unless chosen in pause.
+       Steering is a left pad; jump and dash are separate right-hand buttons
+       so a dash can never be mistaken for a jump. -->
+  <div id="pad">
+    <div class="padside" id="padL">
+      <button class="pbtn" id="pLeft" aria-label="Move left">&#9664;</button>
+      <button class="pbtn" id="pRight" aria-label="Move right">&#9654;</button>
+    </div>
+    <div class="padside" id="padR">
+      <button class="pbtn dash" id="pDash" aria-label="Dash">&#187;</button>
+      <button class="pbtn jump" id="pJump" aria-label="Jump">&#9650;</button>
+    </div>
+  </div>
+
   <div id="rot">
     <div class="ph"></div>
-    <div class="rtxt">Rotate to landscape<br>for a wider view</div>
+    <div class="rtxt">Portrait works fine.<br>Landscape shows more of what is ahead.</div>
     <button class="btn" id="bRotOk">Got it</button>
   </div>
 
@@ -226,7 +275,12 @@ canvas{display:block;touch-action:none}
     <p class="lil" id="bootTxt">Loading</p>
     <p class="lil" id="bootErr" style="display:none;color:var(--rose);max-width:min(90vw,420px);
        letter-spacing:.04em;text-transform:none;line-height:1.5"></p>
-    <button class="btn" id="bootSkip" style="display:none">Continue anyway</button>
+    <div class="btns" id="bootActs" style="display:none">
+      <button class="btn p" id="bootRetry" style="display:none">Retry</button>
+      <button class="btn" id="bootReload" style="display:none">Reload game</button>
+      <button class="btn" id="bootMenu" style="display:none">Return to menu</button>
+      <button class="btn" id="bootCopy" style="display:none">Copy error details</button>
+    </div>
     <p class="lil" id="bootHint">Still on this screen? Scripts are not running here.
        File previews cannot run games &mdash; including the iPhone one, and iOS Safari
        cannot open local files at all. Open this from a web address, or on a computer.</p>
@@ -243,20 +297,45 @@ canvas{display:block;touch-action:none}
    throw left the loading screen up forever with no explanation — which
    is exactly what happened when a browser returned null from
    getContext() (iOS can do this under canvas/memory pressure).
-   The player is never trapped: the error is shown on screen and a
-   Continue button force-dismisses the overlay. */
+
+   The player is never trapped, and never dropped into a game that is not
+   actually running. The old build showed one "Continue anyway" button that
+   force-dismissed the overlay for BOTH failure kinds — so a fatal engine
+   failure (null canvas) hid the explanation and left a frozen black screen.
+   Recovery is now matched to how bad the failure was:
+     recoverable  -> Retry · Reload · (Return to menu, only when the engine
+                     reported itself initialised via __jjaEngineReady)
+     fatal        -> Reload · Copy error details, and NO way to continue.
+   __jjaFatal latches so a late bootDone() cannot silently wipe the error. */
 (function(){
   var el=function(id){return document.getElementById(id);};
   var shown=false;
+  function show(id,on){var n=el(id); if(n)n.style.display=on?"inline-flex":"none";}
   function reveal(msg,fatal){
     if(window.__jjaBooted||shown)return; shown=true;
-    var t=el("bootTxt"); if(t)t.textContent=fatal?"Startup problem":"Taking longer than expected";
+    if(fatal)window.__jjaFatal=true;
+    window.__jjaErrText=(fatal?"Fatal startup error":"Startup did not complete")+
+      "\n"+String(msg||"")+"\n"+navigator.userAgent+"\n"+location.href;
+    var t=el("bootTxt");
+    if(t)t.textContent=fatal?"Startup problem":"Taking longer than expected";
     var e=el("bootErr"); if(e){e.textContent=msg;e.style.display="block";}
-    var k=el("bootSkip"); if(k)k.style.display="inline-flex";
     var r=document.querySelector("#boot .ring"); if(r)r.style.display="none";
+    var acts=el("bootActs"); if(acts)acts.style.display="flex";
+    /* A fatal error means the engine is not running. Offer no route into it. */
+    show("bootRetry",!fatal);
+    show("bootReload",true);
+    show("bootMenu",!fatal&&!!window.__jjaEngineReady);
+    show("bootCopy",!!fatal);
+  }
+  function dismiss(){
+    var b=el("boot"); if(!b)return;
+    b.classList.add("gone");setTimeout(function(){b.style.display="none";},380);
   }
   window.__jjaBooted=false;
+  window.__jjaFatal=false;
+  window.__jjaEngineReady=false;
   window.__jjaReveal=reveal;
+  window.__jjaDismissBoot=dismiss;
   addEventListener("error",function(ev){
     reveal(((ev&&ev.message)||"unknown error")+
       (ev&&ev.lineno?"  (line "+ev.lineno+")":""),true);
@@ -265,16 +344,51 @@ canvas{display:block;touch-action:none}
     var r=ev&&ev.reason;
     reveal("Unhandled rejection: "+((r&&r.message)||String(r||"unknown")),true);
   });
-  /* last-resort: if the game never signalled ready, let the player through */
+  /* last-resort: the spinner may never hang with no explanation */
   setTimeout(function(){
     var b=el("boot");
     if(!window.__jjaBooted&&b&&!b.classList.contains("gone"))
-      reveal("The game did not finish starting. Tap Continue to try playing anyway.",false);
+      reveal("The game did not finish starting. Retry, or reload the page.",false);
   },4000);
   document.addEventListener("click",function(ev){
-    if(!ev.target||ev.target.id!=="bootSkip")return;
-    var b=el("boot"); if(b){b.classList.add("gone");setTimeout(function(){b.style.display="none";},380);}
+    var id=ev.target&&ev.target.id;
+    if(id==="bootReload"){location.reload();return;}
+    if(id==="bootCopy"){
+      var txt=window.__jjaErrText||"no details";
+      var done=function(){var n=el("bootCopy");if(n)n.textContent="Copied";};
+      try{
+        if(navigator.clipboard&&navigator.clipboard.writeText)
+          navigator.clipboard.writeText(txt).then(done,function(){fallback(txt,done);});
+        else fallback(txt,done);
+      }catch(e){fallback(txt,done);}
+      return;
+    }
+    /* Retry re-runs the game's own startup in place when it exposed a hook,
+       otherwise a reload is the only honest option. */
+    if(id==="bootRetry"){
+      if(typeof window.__jjaRetry==="function"){
+        shown=false;
+        var e2=el("bootErr"); if(e2)e2.style.display="none";
+        var acts=el("bootActs"); if(acts)acts.style.display="none";
+        var r=document.querySelector("#boot .ring"); if(r)r.style.display="block";
+        var t=el("bootTxt"); if(t)t.textContent="Retrying";
+        try{window.__jjaRetry();}catch(err){reveal("Retry failed: "+(err&&err.message||err),true);}
+      } else location.reload();
+      return;
+    }
+    /* Only reachable when the engine reported itself initialised. */
+    if(id==="bootMenu"&&!window.__jjaFatal)dismiss();
   });
+  function fallback(txt,done){
+    try{
+      var ta=document.createElement("textarea");
+      ta.value=txt;ta.style.cssText="position:fixed;opacity:0;top:0;left:0";
+      document.body.appendChild(ta);ta.focus();ta.select();
+      document.execCommand("copy");ta.remove();done();
+    }catch(e){
+      var n=el("bootErr"); if(n)n.textContent=txt;   /* at least make it selectable */
+    }
+  }
 })();
 </script>
 <script>
@@ -319,20 +433,53 @@ const IPHONE=/iPhone|iPod/.test(navigator.userAgent)||(IOS&&!/iPad/.test(navigat
 const TOUCH=("ontouchstart" in window)||navigator.maxTouchPoints>0;
 const CAN_FS=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 let usedTouch=TOUCH&&!matchMedia("(pointer:fine)").matches;
+/* Developer overlay. Off for every normal player: it is gated on the same
+   ?debug=1 query flag as the test hook, so a shipped build never shows it
+   and it costs nothing (the draw call is behind this constant). */
+const DBG=/[?&]debug=1\b/.test(location.search);
+let dbgFps=60,dbgLast=0,dbgAcc=0,dbgN=0;
 
 /* ══════ OPTIONS ══════════════════════════════════════════════════
    Read from the DOM once per change, never inside the game loop.
    The original called getElementById up to ~20x per rendered frame. */
-const OPT={snd:true,vib:true,calm:false,bat:false,inv:false,mod:true,vol:.42};
+/* OPT_DEF is the single source of truth for every player setting: its
+   defaults, and (via adopt()) how an old or malformed save is coerced.
+   Settings used to live only in the DOM, so every one of them reset on
+   reload — sound, volume, Calm Mode, Battery Saver, inverted steer and the
+   daily-modifier toggle all forgot themselves between sessions. */
+const OPT_DEF={snd:true,vib:true,calm:false,bat:false,inv:false,mod:true,vol:.42,scheme:"gesture"};
+const SCHEMES=["gesture","buttons"];
+const OPT={...OPT_DEF};
 let reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
 try{matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",e=>{reduced=e.matches;});}catch(e){}
 let autoLite=false;                       // set by the adaptive-quality watchdog
 const calm =()=>OPT.calm||reduced;
 const saver=()=>OPT.bat||autoLite;
+/* DOM -> OPT -> SAVE. Persisting here means every settings change survives a
+   reload, whichever control changed it. optsReady gates the write so the
+   startup call (which runs before load()) cannot save defaults over a real
+   save file. */
+let optsReady=false;
 function syncOpts(){
   OPT.snd=$("oSnd").checked; OPT.vib=$("oVib").checked; OPT.calm=$("oCalm").checked;
   OPT.bat=$("oBat").checked; OPT.inv=$("oInv").checked; OPT.mod=$("oMod").checked;
   OPT.vol=(+$("oVol").value||0)/100; $("volNum").textContent=Math.round(OPT.vol*100);
+  if(!optsReady)return;
+  SAVE.opt={snd:OPT.snd,vib:OPT.vib,calm:OPT.calm,bat:OPT.bat,
+            inv:OPT.inv,mod:OPT.mod,vol:OPT.vol,scheme:OPT.scheme};
+  save();
+}
+/* SAVE -> DOM -> OPT, run once after the save file is read. */
+function applyOpts(){
+  const o=SAVE.opt||OPT_DEF;
+  $("oSnd").checked=!!o.snd; $("oVib").checked=!!o.vib; $("oCalm").checked=!!o.calm;
+  $("oBat").checked=!!o.bat; $("oInv").checked=!!o.inv; $("oMod").checked=!!o.mod;
+  $("oVol").value=Math.round(clamp(Number(o.vol),0,1)*100);
+  OPT.scheme=SCHEMES.includes(o.scheme)?o.scheme:OPT_DEF.scheme;
+  optsReady=true;
+  syncOpts();
+  setVol(OPT.vol);
+  syncSchemeUI();
 }
 
 /* ══════ VIEWPORT ═════════════════════════════════════════════════
@@ -380,7 +527,17 @@ function resize(){
 let rzT=0;
 function resizeSoon(){clearTimeout(rzT);rzT=setTimeout(resize,60);}
 addEventListener("resize",resizeSoon);
-addEventListener("orientationchange",()=>{setTimeout(resize,60);setTimeout(resize,320);});
+/* An orientation change resizes the canvas underneath a live run, and the
+   viewport keeps moving for a few hundred ms afterwards. Pause the run,
+   drop every held input, and only resume once the size has settled — so a
+   rotation can never cost the player a heart. */
+let rotating=0;
+addEventListener("orientationchange",()=>{
+  rotating=1;
+  if(ST==="play"&&!paused)togglePause();
+  setTimeout(resize,60);
+  setTimeout(()=>{resize();rotating=0;},320);
+});
 if(window.visualViewport){
   visualViewport.addEventListener("resize",resizeSoon);
   visualViewport.addEventListener("scroll",resizeSoon);
@@ -400,10 +557,15 @@ function updateRot(){
    does not exist in Safari or Chrome), so nothing was ever persisted
    in a real browser. localStorage is now the primary store. */
 const DEF_SEL="Blip";
+/* OPT_DEF is the single source of truth for every player setting: its
+   defaults, and (via typeof) how adopt() coerces an old or malformed save.
+   Settings used to live only in the DOM, so every one of them reset on
+   reload — sound, volume, Calm Mode, Battery Saver, inverted steer and the
+   daily-modifier toggle all forgot themselves between sessions. */
 const SAVE={best:0,coins:0,xp:0,unlocked:[DEF_SEL],sel:DEF_SEL,msDate:"",msProg:[0,0,0,0],
             msDone:[0,0,0,0],ach:{},totalOrbs:0,juiceRuns:0,tut:0,bossKills:0,
             fruit:{straw:0,mango:0,lemon:0,kiwi:0},brew:"",
-            streak:0,lastDay:"",maxCombo:0};
+            streak:0,lastDay:"",maxCombo:0,opt:{...OPT_DEF}};
 const KEY="jja2";
 const LVXP=lv=>250+lv*180;
 function level(){let lv=1,x=Math.max(0,SAVE.xp|0),n=0;
@@ -443,6 +605,24 @@ function adopt(raw){
   }
   SAVE.ach={}; if(raw.ach&&typeof raw.ach==="object")
     for(const k in raw.ach)if(raw.ach[k])SAVE.ach[k]=1;
+  /* Settings migration. A save from before settings were persisted has no
+     `opt` block at all, and a corrupt one may have any type in any field —
+     both must land on the validated defaults rather than poisoning OPT with
+     NaN or a string. Progression above is untouched by this. */
+  SAVE.opt={...OPT_DEF};
+  const ro=raw.opt;
+  if(ro&&typeof ro==="object"){
+    for(const k in OPT_DEF){
+      if(k==="vol"){
+        const n=Number(ro.vol);
+        SAVE.opt.vol=Number.isFinite(n)?clamp(n,0,1):OPT_DEF.vol;
+      } else if(k==="scheme"){
+        SAVE.opt.scheme=SCHEMES.includes(ro.scheme)?ro.scheme:OPT_DEF.scheme;
+      } else if(ro[k]!==undefined){
+        SAVE.opt[k]=!!ro[k];
+      }
+    }
+  }
   const ids=new Set(CHARS.map(c=>c.id));
   const un=Array.isArray(raw.unlocked)?raw.unlocked.filter(v=>ids.has(v)):[];
   SAVE.unlocked=[...new Set(un)];
@@ -450,7 +630,7 @@ function adopt(raw){
   SAVE.sel=ids.has(raw.sel)&&SAVE.unlocked.includes(raw.sel)?raw.sel:SAVE.unlocked[0];
 }
 function load(){
-  const go=()=>{rollStreak();rollMissions();rollMod();paintAll();bootDone();};
+  const go=()=>{applyOpts();rollStreak();rollMissions();rollMod();paintAll();bootDone();};
   let got=null;
   try{const s=localStorage.getItem(KEY);if(s)got=JSON.parse(s);}catch(e){}
   if(got){adopt(got);go();return;}
@@ -650,6 +830,10 @@ function sfx(k,x){
   case"juice":    arp([0,4,7,12,16,19],440,.05,.4,"triangle",.16);
                   nzs(.5,.1,700,2);break;
   case"juiceEnd": arp([12,7,4,0],440,.06,.26,"triangle",.11);break;   /* new: audible wind-down */
+  case"juiceExt": arp([0,7,12],880,.035,.2,"triangle",.13);break;     /* new: +0.5s extension  */
+  case"juiceLast":bl(660,330,.18,"triangle",.12);break;               /* new: final-second cue */
+  case"bossWeak": arp([0,5,12],520,.05,.26,"sine",.11);break;         /* new: weak point open  */
+  case"bossFlee": bl(520,180,.5,"sine",.13);break;                    /* new: boss escaped     */
   case"stomp":    bl(420,160,.1,"square",.15);break;
   case"bossHit":  bl(300,120,.18,"square",.2);nzs(.18,.16,520,1.4);   /* new: heavier than a stomp */
                   bl(140,70,.24,"sine",.16);break;
@@ -736,7 +920,7 @@ function bumpMs(id,v,mode){
   MS.forEach((m,i)=>{
     if(m.id!==id||SAVE.msDone[i])return;
     SAVE.msProg[i]=mode==="max"?Math.max(SAVE.msProg[i],v):SAVE.msProg[i]+v;
-    if(SAVE.msProg[i]>=m.need){SAVE.msDone[i]=1;SAVE.coins+=200;SAVE.xp+=120;sfx("ding");}});}
+    if(SAVE.msProg[i]>=m.need){SAVE.msDone[i]=1;SAVE.coins+=2600;SAVE.xp+=120;sfx("ding");}});}
 const ACH=[
  {id:"a1",t:"Travel 500m in one run",chk:()=>SAVE.best>=500},
  {id:"a2",t:"Travel 1200m in one run",chk:()=>SAVE.best>=1200},
@@ -764,7 +948,7 @@ const SKINS=[
  {id:"void",   n:"Void glow",need:12,hue:265}];
 const achCount=()=>ACH.reduce((n,a)=>n+(SAVE.ach[a.id]?1:0),0);
 function skinsOwned(){return SKINS.filter(k=>achCount()>=k.need);}
-function checkAch(){ACH.forEach(a=>{if(!SAVE.ach[a.id]&&a.chk()){SAVE.ach[a.id]=1;SAVE.coins+=300;sfx("unlock");}});}
+function checkAch(){ACH.forEach(a=>{if(!SAVE.ach[a.id]&&a.chk()){SAVE.ach[a.id]=1;SAVE.coins+=2500;sfx("unlock");}});}
 function ey(c,x,y,r,col){c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill();}
 const CHARS=[
 /*0*/{id:"Blip",hex:"#FFC94A",eye:"#0B1226",rar:0,pas:"none",draw(c,w,h,f,k,t){
@@ -777,7 +961,7 @@ const CHARS=[
   c.fillStyle=k.d;c.fillRect(w*.1,h*.3,w*.8,h*.2);
   ey(c,w*.5+f*w*.2,h*.4,h*.05,k.e);
   c.fillStyle=k.d;c.fillRect(w*.15,h*.62,w*.7,2);c.fillRect(w*.3,h*.75,w*.4,h*.08);}},
-/*2*/{id:"Frog",hex:"#7FD46A",eye:"#FFFFFF",rar:0,pas:"none",draw(c,w,h,f,k,t){
+/*2*/{id:"Frog",hex:"#7FD46A",eye:"#FFFFFF",rar:0,pas:"walljump",draw(c,w,h,f,k,t){
   c.fillStyle=k.b;c.beginPath();c.roundRect(0,h*.28,w,h*.62,w*.36);c.fill();
   c.fillRect(0,h*.86,w*.24,h*.14);c.fillRect(w*.76,h*.86,w*.24,h*.14);
   const bl=(t%150<6)?.25:1;
@@ -793,7 +977,7 @@ const CHARS=[
   c.quadraticCurveTo(w*1.06,h*(.4-wob),w,h);c.closePath();c.fill();
   c.beginPath();c.arc(w*.62,h*.14,w*.1,0,7);c.fill();
   ey(c,w*.34+f*w*.05,h*.55,w*.075,k.e);ey(c,w*.66+f*w*.05,h*.55,w*.075,k.e);}},
-/*4*/{id:"Crab",hex:"#E2603F",eye:"#FFFFFF",rar:0,pas:"none",draw(c,w,h,f,k,t){
+/*4*/{id:"Crab",hex:"#E2603F",eye:"#FFFFFF",rar:0,pas:"combo",draw(c,w,h,f,k,t){
   c.fillStyle=k.b;c.beginPath();c.ellipse(w*.5,h*.66,w*.5,h*.3,0,0,7);c.fill();
   const cl=Math.sin(t/9)*.08;
   c.beginPath();c.ellipse(-w*.06,h*(.5+cl),w*.16,h*.13,0,0,7);c.fill();
@@ -803,7 +987,7 @@ const CHARS=[
   c.beginPath();c.moveTo(w*.66,h*.44);c.lineTo(w*.7,h*.16);c.stroke();
   ey(c,w*.3,h*.14,w*.09,k.e);ey(c,w*.7,h*.14,w*.09,k.e);
   ey(c,w*.3+f*w*.03,h*.14,w*.04,"#0B1226");ey(c,w*.7+f*w*.03,h*.14,w*.04,"#0B1226");}},
-/*5*/{id:"Shroom",hex:"#D8BE8A",eye:"#0B1226",rar:0,pas:"none",draw(c,w,h,f,k,t){
+/*5*/{id:"Shroom",hex:"#D8BE8A",eye:"#0B1226",rar:0,pas:"fruity",draw(c,w,h,f,k,t){
   c.fillStyle="#F2EDE4";c.beginPath();c.roundRect(w*.24,h*.4,w*.52,h*.6,w*.14);c.fill();
   ey(c,w*.4+f*w*.05,h*.62,w*.055,k.d);ey(c,w*.6+f*w*.05,h*.62,w*.055,k.d);
   c.fillStyle=k.b;c.beginPath();c.ellipse(w*.5,h*.4,w*.54,h*.3,0,Math.PI,0);c.fill();
@@ -853,7 +1037,7 @@ const CHARS=[
   c.closePath();c.fill();c.globalAlpha/=.9;
   ey(c,w*.34+f*w*.06,h*.38,w*.1,k.d);ey(c,w*.66+f*w*.06,h*.38,w*.1,k.d);
   ey(c,w*.36+f*w*.06,h*.35,w*.035,"#FFFFFF");}},
-/*10*/{id:"Cactus",hex:"#4FA85F",eye:"#0B1226",rar:1,pas:"none",draw(c,w,h,f,k,t){
+/*10*/{id:"Cactus",hex:"#4FA85F",eye:"#0B1226",rar:1,pas:"aircontrol",draw(c,w,h,f,k,t){
   c.fillStyle=k.b;c.beginPath();c.roundRect(w*.3,h*.1,w*.4,h*.9,w*.18);c.fill();
   c.beginPath();c.roundRect(0,h*.34,w*.24,h*.3,w*.11);c.fill();
   c.beginPath();c.roundRect(w*.76,h*.24,w*.24,h*.3,w*.11);c.fill();
@@ -915,7 +1099,7 @@ const CHARS=[
   ey(c,w*.33+f*w*.04,h*.42,w*.05*bl,"#0B1226");ey(c,w*.67+f*w*.04,h*.42,w*.05*bl,"#0B1226");
   c.fillStyle="#FF9F3B";c.beginPath();
   c.moveTo(w*.5,h*.5);c.lineTo(w*.56,h*.6);c.lineTo(w*.44,h*.6);c.closePath();c.fill();}},
-/*17*/{id:"Squid",hex:"#C77BE0",eye:"#FFFFFF",rar:2,pas:"none",draw(c,w,h,f,k,t){
+/*17*/{id:"Squid",hex:"#C77BE0",eye:"#FFFFFF",rar:2,pas:"shield",draw(c,w,h,f,k,t){
   c.fillStyle=k.b;c.beginPath();c.arc(w*.5,h*.42,w*.48,Math.PI,0);c.fill();
   c.fillRect(w*.02,h*.42,w*.96,h*.12);
   c.strokeStyle=k.b;c.lineWidth=w*.09;c.lineCap="round";
@@ -1067,7 +1251,7 @@ const CHARS=[
   ey(c,w*.36+f*w*.05,h*.5,w*.075,k.e);ey(c,w*.64+f*w*.05,h*.5,w*.075,k.e);
   c.strokeStyle=k.e;c.lineWidth=1.3;c.beginPath();
   c.moveTo(w*.4,h*.7);c.quadraticCurveTo(w*.5,h*.64,w*.6,h*.7);c.stroke();}},
-/*32*/{id:"Inferno",hex:"#FF5A2B",eye:"#FFE9A0",rar:4,pas:"power",draw(c,w,h,f,k,t){
+/*32*/{id:"Inferno",hex:"#FF5A2B",eye:"#FFE9A0",rar:4,pas:"firelord",draw(c,w,h,f,k,t){
   const fl=Math.sin(t/3.4)*.16, fl2=Math.sin(t/2.1+1)*.12;
   c.fillStyle="rgba(255,190,80,.55)";
   c.beginPath();c.moveTo(w*.5,-h*.34-fl*h);
@@ -1097,7 +1281,19 @@ const CHARS=[
   c.strokeStyle=k.e;c.lineWidth=1.2;c.beginPath();
   c.arc(w*.5,h*.68,w*.11,.25,Math.PI-.25);c.stroke();}}
 ];
-const COST=[0,900,2200,5000,11000,20000,36000];
+/* Hero prices, set from test/economy.mjs against MEASURED earning rates
+   rather than intuition. The old curve was calibrated for an economy that
+   no longer existed: an average player earned ~1600 coins/minute and could
+   buy the first paid hero in under a minute, and the whole roster inside an
+   hour — so nothing was ever a goal. The tier RATIOS are unchanged (the
+   original progression shape was fine); only the scale moved, so an average
+   player now reaches their first paid hero in ~11 minutes and the MYTHIC
+   stays a multi-session target.
+
+   NOTE: existing saves keep every coin, hero, achievement and unlock. What
+   changes is purchasing power — a returning player's banked coins buy fewer
+   new heroes than before. Heroes already unlocked are never taken away. */
+const COST=[0,18000,44000,100000,220000,400000,720000];
 const RAR=[{n:"COMMON",c:"#9FB0C9"},{n:"UNCOMMON",c:"#6FCF7F"},{n:"RARE",c:"#5FA8FF"},
            {n:"EPIC",c:"#B57BE0"},{n:"LEGENDARY",c:"#FFC94A"},{n:"RAINBOW",c:"#FF8AD8"},{n:"MYTHIC",c:"#FF5F7A"}];
 /* Hero abilities. Every one is now a change you can feel within seconds,
@@ -1120,6 +1316,12 @@ const ABIL={
  fireproof: {short:"FIREPROOF"},
  startjuice:{short:"HALF JUICE START"},
  slayer:    {short:"×2 DAMAGE"},
+ firelord:  {short:"FIRE LORD"},
+ aircontrol:{short:"AIR CONTROL"},
+ shield:    {short:"1 SHIELD"},
+ walljump:  {short:"WALL MASTER"},
+ combo:     {short:"COMBO KEEPER"},
+ fruity:    {short:"FRUIT FINDER"},
  random:    {short:"WILDCARD"}};
 const PASS={
  none:{t:"balanced — no tricks"},
@@ -1137,7 +1339,13 @@ const PASS={
  icegrip:{t:"immune to ice · sure-footed"},
  fireproof:{t:"fireballs cannot hurt you"},
  startjuice:{t:"start each run at 50% juice"},
- slayer:{t:"deal double damage"},
+ slayer:{t:"double damage · +1 extra on a stunned boss"},
+ firelord:{t:"immune to fire · every landing bursts into flame"},
+ aircontrol:{t:"+35% steering control while airborne"},
+ shield:{t:"a shield absorbs the first hit of every run"},
+ walljump:{t:"wall jumps are higher and push further"},
+ combo:{t:"combo decays 2.5x slower"},
+ fruity:{t:"triple the fruit spawn rate"},
  random:{t:"random ability every run"}};
 const RUN=CHARS.map(c=>({...c,cost:COST[c.rar]}));
 const byId=id=>RUN.find(r=>r.id===id)||RUN[0];
@@ -1195,6 +1403,9 @@ let boss=null,nextBoss=350,evt=null,nextEvt=150,healT=0,elites=0,bossWins=0;
 let RMOD=null;                    /* daily modifier snapshot, frozen per run */
 let timeScale=1,slowT=0;
 let doubleJumped=false,dashedOnce=false,bossSeen=0,runFruit=0;
+let genPrevY=null;                 /* last generated lane height, for NODBL rise clamping */
+let shieldUp=false;                /* Squid: absorbs the first hit of a run */
+let kills=0,juiceUses=0,juiceExtRun=0;   /* run-over screen counters */
 const P={x:80,y:200,w:22,h:30,vx:0,vy:0,grd:false,lg:-999,sx:1,sy:1,face:1,rot:0,air:0,
          jumpsUsed:0,dash:0,dashCd:0,wall:0,lastSafe:{x:80,y:200}};
 
@@ -1306,41 +1517,151 @@ addEventListener("keyup",e=>{
   if(c==="ArrowRight"||c==="KeyD")kbd.r=false;
   if(c==="Space"||c==="ArrowUp"||c==="KeyW")jumpHeld=false;});
 
-/* touch: tap = jump · slide = steer · swipe down = dash */
-const DEAD=7, RANGE=58, FLICK=46;
-let prime=null;
+/* ══════ TOUCH — SCHEME A (gestures) ══════════════════════════════
+   tap = jump · slide = steer · hold = dash
+
+   The old scheme fired dash on a downward *flick*, which shared its whole
+   input space with steering: a fast diagonal steer read as a flick and
+   dashed, and because the dash test ran on every move the same drag could
+   trigger it after the player had already committed to steering. Dash is
+   now a deliberate HOLD, and the three gestures are mutually exclusive:
+
+     - a touch becomes a STEER once it moves past DEAD horizontally;
+     - a touch becomes a DASH only after HOLD_MS of near-stillness;
+     - moving past the steer threshold cancels the pending dash outright;
+     - releasing before HOLD_MS cancels it too, so dash never fires on
+       release (the old flick could land after the finger was already up).
+
+   Hold progress is published as dashChg so the HUD can draw a charge ring —
+   the player can see the dash arming instead of guessing. */
+const DEAD=7, RANGE=58, HOLD_MS=170, HOLD_SLOP=16;
+let prime=null, dashChg=0;
+/* Multi-touch: only the first finger drives movement, but a second finger
+   anywhere still counts as a jump, so two-thumb play works as expected. */
 cv.addEventListener("pointerdown",e=>{
   e.preventDefault();
   if(e.pointerType!=="mouse")usedTouch=true;
-  if(paused||ST==="menu")return;
+  if(paused||ST==="menu"||rotating)return;
+  if(OPT.scheme==="buttons"&&usedTouch)return;   /* pad owns input in scheme B */
   if(prime===null){
     try{cv.setPointerCapture(e.pointerId);}catch(_){}
-    prime={id:e.pointerId,ax:e.clientX,y0:e.clientY,t0:performance.now(),flicked:false};
+    prime={id:e.pointerId,ax:e.clientX,x0:e.clientX,y0:e.clientY,
+           t0:performance.now(),mode:"",fired:false};
   }
   tryJump();jumpHeld=true;
 },{passive:false});
 cv.addEventListener("pointermove",e=>{
   if(!prime||e.pointerId!==prime.id)return;
   e.preventDefault();
-  const dy=e.clientY-prime.y0;
-  if(!prime.flicked&&dy>FLICK&&performance.now()-prime.t0<420){prime.flicked=true;tryDash();}
   let dx=(e.clientX-prime.ax)/VS;
+  /* Past the steer threshold this is a steer, permanently — a pending dash
+     is cancelled and cannot re-arm for the life of this touch. */
+  if(prime.mode!=="steer"&&Math.abs(e.clientX-prime.x0)/VS>HOLD_SLOP)prime.mode="steer";
   if(dx>RANGE){prime.ax=e.clientX-RANGE*VS;dx=RANGE;}
   if(dx<-RANGE){prime.ax=e.clientX+RANGE*VS;dx=-RANGE;}
   steer=Math.abs(dx)<DEAD?0:clamp((dx-Math.sign(dx)*DEAD)/(RANGE-DEAD),-1,1);
   if(OPT.inv)steer*=-1;
 },{passive:false});
+/* Hold-to-dash is resolved on the frame clock, not on move events: a finger
+   held perfectly still emits no pointermove at all, so a move-driven test
+   could never have fired. Time-based, so it behaves the same at 60 and
+   120 Hz. */
+function touchTick(){
+  if(!prime||OPT.scheme==="buttons"){dashChg=0;return;}
+  if(prime.mode==="steer"||prime.fired){dashChg=0;return;}
+  const held=performance.now()-prime.t0;
+  dashChg=clamp(held/HOLD_MS,0,1);
+  if(held>=HOLD_MS){prime.fired=true;prime.mode="dash";dashChg=0;tryDash();}
+}
 function endTouch(e){
-  if(prime&&e.pointerId===prime.id){prime=null;steer=0;jumpHeld=false;}
+  if(prime&&e.pointerId===prime.id){prime=null;steer=0;jumpHeld=false;dashChg=0;}
 }
 ["pointerup","pointercancel","lostpointercapture"].forEach(v=>cv.addEventListener(v,endTouch));
+/* Any focus/visibility/orientation change drops every held input. Without
+   this a finger down when the app backgrounded left steer latched on. */
+function clearInput(){
+  prime=null;steer=0;jumpHeld=false;dashChg=0;
+  kbd.l=false;kbd.r=false;padL=false;padR=false;
+  document.querySelectorAll(".pbtn.hold").forEach(n=>n.classList.remove("hold"));
+}
+addEventListener("blur",clearInput);
+addEventListener("orientationchange",clearInput);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)clearInput();});
+
+/* ══════ TOUCH — SCHEME B (on-screen buttons) ═════════════════════
+   Steering is held, jump and dash are discrete. Separate buttons mean the
+   two can never be confused, which is the main complaint gestures attract. */
+let padL=false,padR=false;
+function bindHold(id,on,off){
+  const n=$(id);
+  n.addEventListener("pointerdown",e=>{
+    e.preventDefault();e.stopPropagation();
+    usedTouch=true;n.classList.add("hold");
+    try{n.setPointerCapture(e.pointerId);}catch(_){}
+    on();
+  },{passive:false});
+  const up=e=>{e.preventDefault();e.stopPropagation();n.classList.remove("hold");if(off)off();};
+  ["pointerup","pointercancel","lostpointercapture"].forEach(v=>n.addEventListener(v,up,{passive:false}));
+}
+bindHold("pLeft", ()=>{padL=true;}, ()=>{padL=false;});
+bindHold("pRight",()=>{padR=true;}, ()=>{padR=false;});
+bindHold("pJump", ()=>{tryJump();jumpHeld=true;}, ()=>{jumpHeld=false;});
+bindHold("pDash", ()=>{tryDash();});
+function syncSchemeUI(){
+  const on=OPT.scheme==="buttons";
+  $("schGesture").classList.toggle("on",!on);
+  $("schButtons").classList.toggle("on",on);
+  $("pad").classList.toggle("show",on&&usedTouch&&ST==="play"&&!paused);
+}
+["schGesture","schButtons"].forEach(id=>$(id).addEventListener("click",()=>{
+  OPT.scheme=$(id).dataset.scheme;
+  clearInput();syncOpts();syncSchemeUI();sfx("click");
+}));
 /* iOS: block pinch-zoom, long-press menus and double-tap zoom outright */
 ["gesturestart","gesturechange","gestureend"].forEach(v=>
   document.addEventListener(v,e=>e.preventDefault(),{passive:false}));
 document.addEventListener("contextmenu",e=>e.preventDefault());
 document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
 /* ══════ WORLD GEN ════════════════════════════════════════════════ */
-const diff=()=>Math.min(dist/1600,1);
+/* ══════ DIFFICULTY CURVE ═════════════════════════════════════════
+   The old curve was one straight line, `min(dist/1600,1)`: it ramped hard
+   from the very first metre and then stopped dead at 1600 m, so the opening
+   punished new players and everything past 1600 m was flat.
+
+   Five staged bands instead. Each band is interpolated internally, so the
+   curve is continuous (no difficulty cliffs at a boundary), but the SLOPE
+   differs per band: gentle to 400 m, normal to 1000 m, then progressively
+   more demanding, and past 3500 m it keeps creeping without ever reaching
+   a speed that outruns human reaction time.
+
+     stage 1   0- 400m  d 0.00->0.10   beginner-safe, wide platforms
+     stage 2 400-1000m  d 0.10->0.34   normal runner challenge
+     stage 3 1000-2000m d 0.34->0.62   advanced combinations
+     stage 4 2000-3500m d 0.62->0.86   dense, decision-heavy
+     stage 5 3500m+     d 0.86->1.00   prestige, complexity not reflexes
+
+   d is consumed by gen() for gap length, platform width and hazard rates.
+   It is deliberately capped at 1 so no sequence can become ungeneratable. */
+const STAGES=[
+  {from:0,    to:400,  d0:0,   d1:.10, n:1},
+  {from:400,  to:1000, d0:.10, d1:.34, n:2},
+  {from:1000, to:2000, d0:.34, d1:.62, n:3},
+  {from:2000, to:3500, d0:.62, d1:.86, n:4},
+  {from:3500, to:6000, d0:.86, d1:1,   n:5}];
+function stageOf(m){
+  const x=Math.max(0,m||0);
+  for(const s of STAGES)if(x<s.to)return s.n;
+  return 5;
+}
+function diff(){
+  const x=Math.max(0,dist);
+  for(const s of STAGES){
+    if(x>=s.to)continue;
+    const t=(x-s.from)/(s.to-s.from);
+    return s.d0+(s.d1-s.d0)*clamp(t,0,1);
+  }
+  return 1;
+}
 const ELITE_FROM=500;
 const TINT={fire:["#FF7A2F","#FFD9A0"],ice:["#7FD6E8","#EAFBFF"],toxic:["#B6FF3B","#EFFFD0"],
             shadow:["#3A3350","#9C8FC9"],elite:["#B15FE0","#FFD24A"]};
@@ -1382,12 +1703,43 @@ function spawnFoe(wl,pl,gap,y){
   if(m.ground){ if(pl.w<66)return null; return mkFoe(t,pl.x+pl.w*.5-m.w/2,pl.y-m.h,pl); }
   return mkFoe(t,pl.x-gap*.5,y-90-Math.random()*50,null);
 }
+/* ══════ REACHABILITY BUDGET ══════════════════════════════════════
+   Derived from the real physics constants above, not guessed:
+
+     rise time      |JV|/G                    = 21 frames, apex 120px
+     fall time      sqrt(2h/(G*FALL))
+     horizontal     SPD per frame (4.5 — the SLOWEST hero; Bolt is faster,
+                    so anything reachable at SPD is reachable by everyone)
+
+   single jump  ~35 frames airtime -> ~158px of ground, apex 120px
+   double jump  ~58 frames airtime -> ~262px of ground, apex 213px
+
+   The generator could emit a 211px gap (gaps-world at full difficulty) and
+   a 150px rise. With a double jump both are comfortable. With NODBL active
+   both are flatly impossible — an unavoidable death with no route. The
+   NODBL caps below sit under the single-jump budget with a safety margin
+   for imperfect timing, and are asserted by test/genvalidate.mjs. */
+const REACH={
+  single:{gap:158,rise:120},
+  double:{gap:262,rise:213},
+  /* usable budget after a margin for human timing */
+  nodblGap:120, nodblRise:88 };
 function gen(x){
   let guard=0;
+  const nodbl=RMOD==="NODBL";
   while(x<camX+W+600&&guard++<80){
     const m=Math.max(0,Math.floor(x/10)),wl=worldAt(m),d=diff();
     let gap=62+Math.random()*(70+d*44); if(wl.mod==="gaps")gap*=1.2;
-    const w=Math.max(54,(108-d*34)+Math.random()*88),y=225+Math.random()*150;
+    let w=Math.max(54,(108-d*34)+Math.random()*88),y=225+Math.random()*150;
+    /* NODBL: clamp the void and the climb into single-jump range, and widen
+       the landing so a slightly early jump still connects. */
+    if(nodbl){
+      gap=Math.min(gap,REACH.nodblGap);
+      w=Math.max(w,72);
+      const prevY=genPrevY===null?y:genPrevY;
+      y=Math.max(y,prevY-REACH.nodblRise);   /* never climb more than one jump */
+    }
+    genPrevY=y;
     const pl={x:x+gap,y,w,h:18,type:"n",base:y,spike:false,life:0,gone:false,
               dir:Math.random()<.5?-1:1,mimic:0,high:false};
     const r=Math.random();
@@ -1405,8 +1757,11 @@ function gen(x){
       for(let i=0;i<n;i++){const t=i/(n-1||1);
         orbs.push({x:sx+t*gap*.82,y:y-56-Math.sin(t*Math.PI)*42,ph:Math.random()*6,cry:false,got:false,fall:0});}}
 
-    /* risk vs reward — a high road worth far more, over nothing */
-    if(d>.18&&Math.random()<.2){
+    /* risk vs reward — a high road worth far more, over nothing.
+       It sits 168-208px above the lane, which is past a single jump's 120px
+       apex, so it is skipped entirely when double jump is disabled rather
+       than dangling an unreachable reward. */
+    if(d>.18&&Math.random()<.2&&!nodbl){
       const hy=y-168-Math.random()*40;
       for(let i=0;i<3;i++){
         const hx2=x+gap+i*54;
@@ -1415,9 +1770,13 @@ function gen(x){
         orbs.push({x:hx2+17,y:hy-i*6-30,ph:Math.random()*6,cry:i===1,got:false,fall:0});
       }
     }
-    if(Math.random()<.08)orbs.push({x:pl.x+pl.w/2,y:y-118-Math.random()*40,ph:Math.random()*6,cry:true,got:false,fall:0});
+    /* floating crystal: 118-158px up. Under NODBL keep it inside the
+       single-jump apex so the extension pickup stays collectable. */
+    if(Math.random()<.08)orbs.push({x:pl.x+pl.w/2,
+      y:y-(nodbl?70+Math.random()*30:118+Math.random()*40),
+      ph:Math.random()*6,cry:true,got:false,fall:0});
     /* fruit for the Juice Lab — rarer than crystals, and visibly different */
-    if(Math.random()<.055){
+    if(Math.random()<(has("fruity")?.165:.055)){
       const ks=Object.keys(FRUIT);
       orbs.push({x:pl.x+pl.w/2,y:y-84-Math.random()*46,ph:Math.random()*6,
                  cry:false,fruit:ks[Math.floor(Math.random()*ks.length)],got:false,fall:0});}
@@ -1441,9 +1800,16 @@ function gen(x){
    replaced by JUICERUSH, which changes Juice Mode instead of deleting
    it: it triggers sooner but burns faster. No modifier can now switch a
    core verb off entirely. */
-const MODS=[{k:"NODBL",t:"No double jump"},{k:"ONEHEART",t:"One heart"},{k:"FAST",t:"Double speed"},
+/* FAST was labelled "Double speed" while the code ran 1.34x — the label
+   promised a modifier the game never implemented, and 1.34x still broke
+   boss timing and moving-platform intercepts. It is now an honest 1.25x
+   "Turbo Day", and it pays for itself with a +40% coin bonus so the extra
+   risk buys something. (Reward applied in die(); see TURBO_COIN.) */
+const MODS=[{k:"NODBL",t:"No double jump"},{k:"ONEHEART",t:"One heart"},
+            {k:"FAST",t:"Turbo Day — +25% speed, +40% coins"},
             {k:"JUICERUSH",t:"Juice at 60%, burns faster"},
             {k:"MADNESS",t:"Monster madness"},{k:"DASHONLY",t:"Instant dash recharge"}];
+const TURBO_SPD=1.25, TURBO_COIN=1.4;
 let MOD=null;
 function rollMod(){const r=seeded(today()+"m");MOD=MODS[Math.floor(r()*MODS.length)].k;}
 const modText=k=>{const m=MODS.find(x=>x.k===(k||MOD));return m?m.t:"";};
@@ -1456,6 +1822,7 @@ function applyPassives(){
   if(RMOD==="ONEHEART")hpMax=1;
   hpMax=Math.max(1,hpMax);
   hp=hpMax; meter=has("startjuice")?50:0; healT=0;
+  shieldUp=has("shield");            /* one absorb per run, refreshed on start */
 }
 /* every juice gain routes through here so Nature's +60% and the Juice Lab
    brews apply uniformly instead of being sprinkled per call site */
@@ -1463,15 +1830,50 @@ function gainJuice(n){
   if(juice>0)return;                       /* frozen while active */
   let m=1;
   if(has("harvest"))m*=1.6;
+  if(has("speed"))m*=1.3;                  /* Bolt: shorter Juice Mode, but he
+                                              reaches it 30% sooner — the trade
+                                              that stops his passive reading as
+                                              a straight penalty */
   if(BREW==="mega")m*=1.25;
   meter+=n*m;
 }
+/* ══════ JUICE MODE DURATION ══════════════════════════════════════
+   All durations are frames at the fixed 60 Hz sim. Named constants so the
+   balance is readable and testable rather than scattered magic numbers.
+
+   Base was 480f (8s) and Bolt multiplied it by 0.6 — a 40% cut that made
+   the game's headline reward feel like a punishment for picking him. Base
+   is now 12s, and Bolt keeps a genuine 9.75s while gaining a faster meter
+   and a bigger score multiplier (see gainJuice / the scoring multiplier)
+   so his shorter window is a trade, not a tax. */
+const JUICE_BASE_F=720;   /* 12.0s — standard heroes                        */
+const JUICE_BOLT_F=585;   /*  9.75s — Bolt, compensated elsewhere           */
+const JUICE_CAP_F=900;    /* 15.0s — hard ceiling, extensions included      */
+const JUICE_EXT_F=30;     /*  +0.5s per crystal collected while juiced      */
+let juiceExt=0;           /* frames added this activation, for the HUD      */
 function juiceLen(){
-  let n=has("juicelong")?720:480;
-  if(has("speed"))n*=.6;                  /* Bolt: fast but burns juice */
-  if(BREW==="rainbow")n*=1.6;
-  if(RMOD==="JUICERUSH")n*=.6;
-  return Math.round(n);}
+  let n=has("speed")?JUICE_BOLT_F:JUICE_BASE_F;
+  if(has("juicelong"))n=Math.round(n*1.5);
+  if(BREW==="rainbow")n=Math.round(n*1.6);
+  if(RMOD==="JUICERUSH")n=Math.round(n*.6);
+  return Math.min(n,JUICE_CAP_F);           /* the cap is absolute */
+}
+/* Skill-based extension: crystals only, and only while already juiced.
+   Crystals are rare enough that this cannot loop forever, and the 15s cap
+   is enforced here as well as in juiceLen() so no path can exceed it. */
+function extendJuice(x,y){
+  if(juice<=0)return false;
+  if(juiceMax>=JUICE_CAP_F&&juice>=JUICE_CAP_F)return false;
+  const before=juice;
+  juiceMax=Math.min(JUICE_CAP_F,juiceMax+JUICE_EXT_F);
+  juice=Math.min(JUICE_CAP_F,juice+JUICE_EXT_F);
+  if(juice===before)return false;
+  juiceExt+=juice-before;juiceExtRun+=juice-before;
+  sfx("juiceExt");buzz(12);
+  pop(x,y-30,"+0.5s","#9BEFFF",15);
+  ring(P.x+P.w/2,P.y+P.h/2,"#9BEFFF",4);
+  return true;
+}
 const juiceThresh=()=>RMOD==="JUICERUSH"?60:100;
 
 /* ══════ TUTORIAL (new) ═══════════════════════════════════════════ */
@@ -1507,6 +1909,7 @@ function start(){
   juice=0;juiceMax=juiceLen();iFr=0;worldI=0;boss=null;evt=null;
   nextBoss=350;nextEvt=150;elites=0;bossWins=0;
   doubleJumped=false;dashedOnce=false;steerUsed=false;tutI=0;tutHold=0;runFruit=0;
+  genPrevY=null;juiceExt=0;kills=0;juiceUses=0;juiceExtRun=0;bossSeen=0;
   /* consume the equipped brew for this run */
   BREW=SAVE.brew||null;
   if(BREW){SAVE.brewed=SAVE.brewed||{};SAVE.brewed[BREW]=1;SAVE.brew="";save();}
@@ -1514,13 +1917,34 @@ function start(){
   applyPassives();
   shake=0;hstop=0;flash=0;ST="play";paused=false;steer=0;prime=null;
   show(null);updateRot();
-  $("pauseBtn").classList.add("show");
+  $("pauseBtn").classList.add("show");syncSchemeUI();
   initAudio();layers(1);
 }
+/* One collision costs exactly one heart. iFr is set BEFORE anything else so
+   a second overlapping hazard in the same frame cannot re-enter, and the
+   remaining hearts are announced so the player is never guessing. */
 function hurt(reason){
   if(iFr>0||juice>0||P.dash>0)return false;
-  hp--;iFr=95;sfx("hurt");buzz([0,45,40,45]);flash=.8;if(!calm())shake=9;combo=0;
+  /* Shield absorbs the hit entirely: no heart lost, but the same i-frames
+     so the player still gets a safe window to recover. */
+  if(shieldUp){
+    shieldUp=false;iFr=80;combo=0;
+    sfx("nope");buzz(20);flash=.5;if(!calm())shake=6;
+    pop(P.x+P.w/2,P.y-14,"SHIELD BROKEN","#9BEFFF",15);
+    ring(P.x+P.w/2,P.y+P.h/2,"#9BEFFF",6);
+    for(let i=0;i<16;i++)spark(P.x+P.w/2,P.y+P.h/2,(Math.random()-.5)*6,(Math.random()-.5)*6,2,true);
+    P.vy=JV*.5;
+    return false;
+  }
+  hp--;iFr=95;
+  sfx("hurt");buzz([0,45,40,45]);flash=.8;if(!calm())shake=9;combo=0;
+  hstop=3;                                   /* brief hitstop: the hit reads */
+  P.sx=1.34;P.sy=.72;                        /* squash so the body reacts    */
   pop(P.x+P.w/2,P.y-8,"-1 ♥","#FF6B7A",15);
+  if(hp>0)pop(P.x+P.w/2,P.y-28,hp+(hp===1?" HEART LEFT":" HEARTS LEFT"),"#FFE9A0",12);
+  for(let i=0;i<14;i++)
+    spark(P.x+P.w/2,P.y+P.h/2,(Math.random()-.5)*6,(Math.random()-.5)*6,2,false);
+  ring(P.x+P.w/2,P.y+P.h/2,"#FF5F7A",5);
   if(hp<=0){die(reason);return true;}
   P.vy=JV*.7;P.vx=-P.face*5;return false;
 }
@@ -1550,28 +1974,54 @@ function die(reason){
   const rec=dist>SAVE.best;if(rec)SAVE.best=dist;
   let earn=orbs_+crys*10; if(has("rich"))earn=Math.round(earn*1.5);
   if(dist>=500)earn+=150;
+  const turbo=RMOD==="FAST"?Math.round(earn*(TURBO_COIN-1)):0;
+  earn+=turbo;                              /* Turbo Day pays for its risk */
   const xpG=Math.floor(dist/2)+earn;
   SAVE.coins+=earn;SAVE.totalOrbs+=orbs_;SAVE.xp+=xpG;
   if(comboMax>(SAVE.maxCombo|0))SAVE.maxCombo=comboMax;
   SAVE.fruitTotal=(SAVE.fruitTotal|0)+runFruit;
   checkAch();save();paintAll();
   $("dTitle").textContent=reason;$("dDist").textContent=dist;
-  $("dStats").textContent="◈"+earn+" · +"+xpG+" XP · ×"+comboMax+" combo"
-    +(elites?" · "+elites+" elite":"")+(bossWins?" · "+bossWins+" boss":"");
+  /* The run-over screen used to be one dense line. It is now an itemised
+     breakdown, because "why did I earn that?" and "how close am I to the
+     next hero?" are the two questions that actually keep a runner playing. */
+  const rows=[];
+  rows.push(["Distance",dist+" m  (best "+Math.max(dist,SAVE.best|0)+"m)"]);
+  rows.push(["Coins collected","◈ "+(earn-turbo-(dist>=500?150:0))]);
+  if(dist>=500)rows.push(["Distance bonus","◈ +150"]);
+  if(turbo)rows.push(["Turbo Day bonus","◈ +"+turbo]);
+  rows.push(["Total earned","◈ "+earn]);
+  rows.push(["XP earned","+"+xpG]);
+  rows.push(["Max combo","×"+comboMax]);
+  if(juiceUses)rows.push(["Juice Modes",juiceUses+
+    (juiceExtRun>0?"  (+"+(juiceExtRun/60).toFixed(1)+"s earned)":"")]);
+  if(kills)rows.push(["Enemies defeated",String(kills)]);
+  if(elites)rows.push(["Elites defeated",String(elites)]);
+  rows.push(["Boss",bossWins?bossWins+" defeated":(bossSeen?"escaped / survived":"none met")]);
+  if(runFruit)rows.push(["Fruit found",String(runFruit)]);
+  /* progress toward the cheapest hero the player cannot yet afford */
+  const next=RUN.filter(r=>!SAVE.unlocked.includes(r.id)&&r.cost>0)
+                .sort((a,b)=>a.cost-b.cost)[0];
+  if(next){
+    const pc=Math.min(100,Math.floor((SAVE.coins/next.cost)*100));
+    rows.push(["Next hero",next.id+"  "+pc+"%  (◈"+SAVE.coins+" / "+next.cost+")"]);
+  }
+  $("dStats").innerHTML=rows.map(r=>
+    '<span class="drow"><i>'+r[0]+'</i><b>'+r[1]+'</b></span>').join("");
   $("dRec").style.display=rec?"block":"none";
-  show("ovDead");updateRot();$("pauseBtn").classList.remove("show");
+  show("ovDead");updateRot();$("pauseBtn").classList.remove("show");syncSchemeUI();
   layers(0);
 }
 function togglePause(){
   if(ST!=="play")return;
   paused=!paused;$("ovPause").classList.toggle("show",paused);
-  steer=0;prime=null;jumpHeld=false;sfx("click");diag();
+  clearInput();sfx("click");diag();syncSchemeUI();
   layers(paused?0:Math.min(1+Math.floor(dist/500),3));
 }
 function damageFoe(f){
-  const dmg=((has("slayer")||has("power"))?2:1)*(juice>0?2:1);      /* Juice Mode now boosts damage */
+  const dmg=(has("slayer")?2:1)*(juice>0?2:1);      /* Juice Mode now boosts damage */
   f.hp-=dmg;f.flashT=8;
-  sfx("stomp");buzz(12);combo++;comboT=frame;gainJuice(f.el?18:6);
+  sfx("stomp");buzz(12);combo++;comboT=frame;gainJuice(f.el?18:6);kills++;
   if(f.hpMax>1)pop(f.x+f.w/2,f.y-6,"-"+dmg,"#FFFFFF",12);
   burst(f.el?18:10,f.x+f.w/2,f.y+f.h/2,5,2,f.el);
   if(f.hp<=0){
@@ -1608,7 +2058,10 @@ function step(){
      just stopping dead. */
   if(juice>0){
     juice--;
-    if(juice===90){sfx("juiceEnd");pop(P.x+P.w/2,P.y-30,"JUICE ENDING","#FFFFFF",12);}
+    /* wind-down: a 3s warning, then a distinct final-second cue, so the end
+       is read rather than discovered. The bar also pulses (see the HUD). */
+    if(juice===180){sfx("juiceEnd");pop(P.x+P.w/2,P.y-30,"JUICE ENDING","#FFFFFF",12);}
+    if(juice===60)sfx("juiceLast");
     if(juice===0){
       layers(Math.min(1+Math.floor(dist/500),3));
       burst(14,P.x+P.w/2,P.y+P.h/2,5,2,true);
@@ -1619,9 +2072,13 @@ function step(){
     pop(P.x+P.w/2,P.y-10,"+1 ♥","#6FCF7F",14);}}
 
   /* ── movement ── */
-  const dir=kbd.l||kbd.r?((kbd.r?1:0)-(kbd.l?1:0)):steer;
+  touchTick();                       /* resolve hold-to-dash on the frame clock */
+  const padDir=(padR?1:0)-(padL?1:0);
+  const dir=kbd.l||kbd.r?((kbd.r?1:0)-(kbd.l?1:0))
+           :padDir?(OPT.inv?-padDir:padDir)
+           :steer;
   if(Math.abs(dir)>.5)steerUsed=true;
-  const spd=SPD*(RMOD==="FAST"?1.34:1)*(has("speed")?1.25:1)
+  const spd=SPD*(RMOD==="FAST"?TURBO_SPD:1)*(has("speed")?1.25:1)
             *(juice>0&&BREW==="lightning"?1.35:1);
   if(P.dash>0){
     P.dash--;P.vx=P.face*DASH_V;P.vy=0;
@@ -1631,7 +2088,11 @@ function step(){
        whole platform list twice per frame for ice and conveyors. */
     const on=P.grd?P.onPl:null;
     const ice=!!on&&on.type==="i"&&!has("icegrip")&&!has("slow");
-    P.vx+=(dir*spd-P.vx)*(ice?.06:.55);
+    /* aircontrol: more steering authority in the air only, so it is felt
+       exactly where a runner needs it (mid-jump correction) without making
+       ground movement twitchy. */
+    const air=!P.grd&&has("aircontrol")?1.35:1;
+    P.vx+=(dir*spd*air-P.vx)*(ice?.06:.55);
     if(wl.mod==="wind")P.vx+=Math.sin(frame/90)*.4;
     if(evt&&evt.k==="tornado")P.vx+=.85;
     if(on&&on.type==="v")P.vx+=on.dir*.9;
@@ -1657,7 +2118,9 @@ function step(){
       P.sx=.76;P.sy=1.28;sfx("jump");jumps++;
       for(let i=0;i<5;i++)spark(P.x+P.w/2,P.y+P.h,(Math.random()-.5)*3,Math.random()*1.4,1.5+Math.random()*2);
     } else if(P.wall&&!P.grd){
-      P.vy=JV*.95;P.vx=-P.wall*6.5;P.face=-P.wall;bufAt=-999;jumpFrame=frame;P.jumpsUsed=1;sfx("dbl");jumps++;
+      P.vy=JV*(has("walljump")?1.12:.95);
+      P.vx=-P.wall*(has("walljump")?9:6.5);
+      P.face=-P.wall;bufAt=-999;jumpFrame=frame;P.jumpsUsed=has("walljump")?0:1;sfx("dbl");jumps++;
       for(let i=0;i<6;i++)spark(P.x+(P.wall>0?P.w:0),P.y+P.h/2,-P.wall*2,(Math.random()-.5)*3,1.8);
     } else if(P.jumpsUsed<maxJ&&!P.grd){
       P.vy=JV*.88;bufAt=-999;jumpFrame=frame;P.jumpsUsed++;P.sx=.8;P.sy=1.24;sfx("dbl");jumps++;
@@ -1666,7 +2129,7 @@ function step(){
   if(!jumpHeld&&frame-jumpFrame>6&&P.vy<JV*.55)P.vy=JV*.55;
 
   if(P.dash<=0){
-    const gm=(wl.mod==="lowg"?.72:1)*(has("power")?.86:1);  /* Inferno floats: harder */
+    const gm=(wl.mod==="lowg"?.72:1);
     P.vy+=(P.vy>0?G*FALL:G)*gm;
     if(P.wall&&P.vy>2.2&&!P.grd)P.vy=2.2;
     if(P.vy>MAXV)P.vy=MAXV;}
@@ -1699,6 +2162,20 @@ function step(){
             perfect++;gainJuice(has("perfect")?12:4);flash=Math.min(flash+.12,.4);
             pop(P.x+P.w/2,pl.y-26,"PERFECT","#FFE9A0",12);
             for(let i=0;i<6;i++)spark(P.x+P.w/2,pl.y,(Math.random()-.5)*3,-Math.random()*2.5,2,true);}
+          /* Inferno: every landing detonates a small flame burst. Smaller
+             radius than the Juice Mode shockwave and it does not touch the
+             boss, so it is a distinct identity rather than a weaker copy. */
+          if(has("firelord")){
+            ring(P.x+P.w/2,pl.y,"#FF7A2F",5);
+            sfx("stomp");
+            for(let i=0;i<10;i++)
+              spark(P.x+P.w/2,pl.y,(Math.random()-.5)*6,-Math.random()*2.6,2.2,true);
+            const FR=70;
+            for(const f of foes){
+              if(f.dead)continue;
+              const fx=f.x+f.w/2-(P.x+P.w/2),fy=f.y+f.h/2-pl.y;
+              if(fx*fx+fy*fy<FR*FR)damageFoe(f);}
+          }
           /* Juice Mode special: every landing sends out a shockwave that
              clears nearby enemies. This is what makes Juice Mode feel like
              a power rather than just a speed buff. */
@@ -1727,7 +2204,8 @@ function step(){
   P.sx+=(1-P.sx)*.19;P.sy+=(1-P.sy)*.19;
   P.rot=P.grd?P.rot*.7:clamp(P.rot+P.vx*.004+(P.air>34?P.face*.04:0),-.9,.9);
   if(iFr>0)iFr--;
-  if(frame-comboT>130&&combo>0){combo=Math.max(0,combo-1);comboT=frame-110;}
+  const cdec=has("combo")?325:130;   /* Combo Keeper: 2.5x slower decay */
+  if(frame-comboT>cdec&&combo>0){combo=Math.max(0,combo-1);comboT=frame-(cdec-20);}
 
   /* ── orbs ── */
   const mag=(has("magnet")?72:24)*(juice>0?4.2:1);
@@ -1739,13 +2217,18 @@ function step(){
     if(juice>0&&dd<(mag*3)*(mag*3)){o.x+=dx*.14;o.y+=dy*.14;}
     if(dd<mag*mag){
       o.got=true;
-      const mult=(1+Math.floor(combo/8)+(juice>0?2:0))*(juice>0&&BREW==="rainbow"?3:1);
+      /* Bolt trades duration for intensity: +1 on the juiced multiplier. */
+      const jm=juice>0?(has("speed")?3:2):0;
+      const mult=(1+Math.floor(combo/8)+jm)*(juice>0&&BREW==="rainbow"?3:1);
       if(o.fruit){
         SAVE.fruit[o.fruit]=(SAVE.fruit[o.fruit]|0)+1;runFruit++;
         sfx("cry");buzz(18);gainJuice(14);flash=.35;
         pop(o.x,o.y-12,FRUIT[o.fruit].icon+" "+FRUIT[o.fruit].n.toUpperCase(),FRUIT[o.fruit].col,13);
         for(let i=0;i<12;i++)spark(o.x,o.y,(Math.random()-.5)*5,(Math.random()-.5)*5,2,true);
-      } else if(o.cry){crys++;orbs_+=10*mult;sfx("cry");buzz(20);if(juice<=0)gainJuice(26);flash=.5;
+      } else if(o.cry){crys++;orbs_+=10*mult;sfx("cry");buzz(20);flash=.5;
+        /* juiced: the crystal buys time instead of meter (the meter is
+           frozen during Juice Mode anyway, so it was pure waste before) */
+        if(juice<=0)gainJuice(26); else extendJuice(o.x,o.y);
         pop(o.x,o.y-12,"+"+(10*mult)+" ♦","#9BEFFF",14);}
       else{orbs_+=mult;sfx("orb",combo);buzz(6);if(juice<=0)gainJuice(3.4);
         if(mult>1)pop(o.x,o.y-10,"+"+mult,"#FFE9A0",11);}
@@ -1756,10 +2239,10 @@ function step(){
   /* ── Juice Mode trigger ── */
   if(juice>0)meter=0;
   else if(meter>=juiceThresh()){
-    juiceMax=juiceLen();juice=juiceMax;meter=0;
+    juiceMax=juiceLen();juice=juiceMax;meter=0;juiceExt=0;
     sfx("juice");buzz([0,30,30,30,30,60]);flash=1;layers(3);
     slowT=48;hstop=6;                           /* cinematic entrance */
-    SAVE.juiceRuns++;bumpMs("juice",1,"add");save();
+    SAVE.juiceRuns++;juiceUses++;bumpMs("juice",1,"add");save();
     pop(P.x+P.w/2,P.y-44,"JUICE MODE",juiceCol(),24);
     pop(P.x+P.w/2,P.y-22,"DOUBLE POINTS","#FFFFFF",12);
     burst(46,P.x+P.w/2,P.y+P.h/2,11,3,true);
@@ -1849,7 +2332,8 @@ function step(){
     if(frame%3===0)spark(sh.x,sh.y,0,0,2.4,true,.7);
     if(P.x+P.w>sh.x-6&&P.x<sh.x+6&&P.y+P.h>sh.y-6&&P.y<sh.y+6){
       sh.life=0;burst(8,sh.x,sh.y,4,2,true);
-      if(!(has("fireproof")&&sh.k==="fire")&&juice<=0&&P.dash<=0){ if(hurt("BURNED"))return; }
+      const fireSafe=(has("fireproof")||has("firelord"))&&sh.k==="fire";
+      if(!fireSafe&&juice<=0&&P.dash<=0){ if(hurt("BURNED"))return; }
     }}
   compact(shots,sh=>sh.life>0&&sh.x>camX-100&&sh.y<WH+140);
 
@@ -1864,9 +2348,24 @@ function step(){
   compact(plats,p=>p.x+p.w>camX-400);
   compact(orbs,o=>o.x>camX-400&&!o.got&&o.y<WH+200);
 
+  /* Falling out is the most common damage source in the game, but it used
+     to decrement hp inline — bypassing hurt() and therefore the shield, the
+     i-frames and the remaining-hearts readout. It now honours exactly the
+     same contract as every other hit; only the recovery differs (respawn on
+     a real platform rather than knockback). */
   if(P.y>WH+170){
-    if(hp>1){hp--;sfx("hurt");buzz([0,45,40,45]);combo=0;
-      pop(P.x+P.w/2,WH-40,"-1 ♥","#FF6B7A",15);respawn();}
+    if(shieldUp){
+      shieldUp=false;combo=0;
+      sfx("nope");buzz(20);flash=.5;
+      pop(P.x+P.w/2,WH-40,"SHIELD BROKEN","#9BEFFF",15);
+      respawn();
+    }
+    else if(hp>1){
+      hp--;combo=0;sfx("hurt");buzz([0,45,40,45]);
+      pop(P.x+P.w/2,WH-40,"-1 ♥","#FF6B7A",15);
+      pop(P.x+P.w/2,WH-60,hp+(hp===1?" HEART LEFT":" HEARTS LEFT"),"#FFE9A0",12);
+      respawn();
+    }
     else{die("FELL");return;}}
   dist=Math.max(dist,Math.floor(P.x/10));
 
@@ -1956,7 +2455,18 @@ const BOSSES={
   eye:{   name:"CYCLOPS EYE",   tag:"IT SEES EVERY STEP",
           col:"#C77BE0", col2:"#5FE8FF", shot:"beam",  minion:"eye" }};
 const BOSS_ORDER=["juice","flame","rex","eye"];
-const BOSS_HP=b=>6+b*2;
+/* Repeat encounters add pattern variation (phase thresholds, volley spread
+   and minion cadence already scale) rather than only stacking HP, so a
+   later boss is not just a longer version of the first. HP growth is capped
+   so a fight can never become a damage sponge. */
+const BOSS_HP=b=>Math.min(6+b*2,18);
+const BOSS_MAX_F=3900;          /* ~65s hard ceiling on one encounter */
+/* One definition of the vulnerable window, used by BOTH the state machine
+   and the HUD bar. They were two separate expressions and had drifted: the
+   bar assumed 155 frames in phase 3 while the window actually closed at 95,
+   so the countdown that tells the player how long they have to land a hit
+   was wrong in the hardest phase. */
+const stunLen=b=>b.phase>=3?95:b.phase>=2?110:155;
 function bossSpawn(){
   evt=null;nextEvt=dist+240;
   /* first boss of a run is always the Juice Monster (it is the one the
@@ -1965,12 +2475,16 @@ function bossSpawn(){
   boss={k,x:camX+W+150,y:110,vy:0,hp:BOSS_HP(bossWins),max:BOSS_HP(bossWins),
         st:"warn",t:0,life:0,hurt:0,cool:80,phase:1,ty:P.y,volley:0,
         gift:null,drop:null,hits:0,spawned:0};
-  sfx("siren");buzz([0,70,60,70]);
+  sfx("siren");buzz([0,70,60,70]);bossSeen++;
   if(!calm())shake=6;
 }
 function bossHitBox(){return{w:64,h:44};}
 function bossDamage(mult){
-  const dmg=((has("slayer")||has("power"))?2:1)*(juice>0?2:1)*(mult||1);
+  /* Slayer is the damage hero: x2 everywhere, and +1 more into a stunned
+     boss so its identity is "boss killer" rather than a flat stat share
+     with Inferno (which is now fire, not damage). */
+  let dmg=(has("slayer")?2:1)*(juice>0?2:1)*(mult||1);
+  if(has("slayer")&&boss.st==="stun")dmg+=1;
   boss.hp-=dmg;boss.hurt=26;boss.hits++;
   sfx("bossHit");buzz(24);
   if(!calm())shake=11;
@@ -1992,7 +2506,10 @@ function bossDamage(mult){
 }
 function bossDie(){
   boss.hp=0;boss.st="dead";boss.t=0;
-  const rw=600+bossWins*250;
+  /* Was 600+250n, which made bosses 45-69% of a run's entire income and
+     turned boss-farming into the only rational strategy. Now a strong bonus
+     (~25%) on top of collecting, not a replacement for it. */
+  const rw=300+bossWins*90;
   orbs_+=rw;bossWins++;SAVE.bossKills++;
   flash=1;hstop=8;slowT=54;
   if(!calm())shake=16;
@@ -2030,7 +2547,21 @@ function bossStep(){
   }
   /* hard despawn guard that actually works: `life` is never reset by a
      state change, unlike the original `t` */
-  if(boss.life>3900){boss.st="retreat";boss.t=0;pop(boss.x,boss.y-40,"TYRANT RETREATS","#A8B8D8",15);return;}
+  /* Lifetime guard. The old build silently removed the boss with an
+     unexplained "TYRANT RETREATS" and no reward, so a long fight just
+     evaporated. Now it says what happened, what the player keeps, and that
+     the boss will come back — and it pays out proportionally to the damage
+     actually dealt, so a near-win is not worth nothing. */
+  if(boss.life>BOSS_MAX_F){
+    boss.st="retreat";boss.t=0;
+    const done=clamp(1-boss.hp/boss.max,0,1);
+    const part=Math.round((300+bossWins*120)*done);
+    orbs_+=part;boss.reward=part;boss.escaped=true;
+    sfx("bossFlee");
+    pop(boss.x,boss.y-56,"BOSS ESCAPED","#A8B8D8",17);
+    pop(boss.x,boss.y-34,"+"+part+" for "+Math.round(done*100)+"% damage","#FFE9A0",13);
+    snack("Boss escaped — it returns later. Attack during the stun window.",3600);
+    return;}
 
   if(boss.hurt>0)boss.hurt--;
   const BD=BOSSES[boss.k]||BOSSES.juice;
@@ -2083,7 +2614,13 @@ function bossStep(){
       boss.y+=((boss.ty+P.h/2-B.h/2)-boss.y)*.12;
       if(frame%3===0)spark(boss.x+30,boss.y,3,(Math.random()-.5)*2,2.4,false);
       if(boss.x<camX-110){
-        boss.st="stun";boss.t=0;boss.volley=0;sfx("nope");
+        boss.st="stun";boss.t=0;boss.volley=0;
+        /* The stun IS the weak-point window. Announce it with its own cue
+           and prompt instead of the generic "nope" blip, so the player is
+           never left guessing when (or where) the boss can be hurt. */
+        sfx("bossWeak");
+        pop(P.x+P.w/2,P.y-52,"WEAK POINT OPEN","#6FCF7F",16);
+        buzz(18);
         /* Snap, don't ease. Easing in from where the dive ended (off-screen
            left) spent the first ~25 frames of the vulnerable window with the
            boss invisible, which wasted the one guaranteed damage window. */
@@ -2099,7 +2636,7 @@ function bossStep(){
       boss.x+=(wantX-boss.x)*.16;
       boss.y+=(wantY-boss.y)*.16;
       if(frame%5===0)spark(boss.x+(Math.random()-.5)*50,boss.y+16,0,-.7,2,true);
-      if(boss.t>(p3?95:p2?110:155)){boss.st="hover";boss.t=0;boss.cool=60;}
+      if(boss.t>stunLen(boss)){boss.st="hover";boss.t=0;boss.cool=60;}
       break;}
   }
 
@@ -2487,6 +3024,7 @@ function draw(){
   if(flash>.01&&!calm()){ctx.fillStyle="rgba(255,233,160,"+(flash*.4)+")";ctx.fillRect(-20,-20,W+40,H+40);}
 
   if(ST==="play")drawHUD();
+  if(DBG)drawDebug();
 }
 let vigKey="",vig=null;
 
@@ -2555,11 +3093,15 @@ function drawBoss(lite){
   bossBody(boss.k,bx,by,body,trim,flap,stunned);
 
   /* the weak point — the whole point of the redesign is that the player
-     can see where and when to hit */  /* the weak point — the whole point of the redesign is that the player
      can see where and when to hit */
   const oneEye=boss.k==="eye"||boss.k==="juice";
   if(stunned){
     const pu=.7+.3*Math.sin(frame/4);
+    /* an expanding outer ring on top of the pulsing core: readable even on a
+       small phone screen and against a bright biome */
+    const ex=(frame%36)/36;
+    ctx.strokeStyle="rgba(111,231,140,"+(1-ex).toFixed(3)+")";ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(bx,by-2,14+ex*26,0,7);ctx.stroke();
     ctx.fillStyle="rgba(111,231,140,"+pu+")";
     ctx.beginPath();ctx.arc(bx,by-2,10,0,7);ctx.fill();
     ctx.strokeStyle="#EAFFE9";ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by-2,13+pu*3,0,7);ctx.stroke();
@@ -2580,7 +3122,7 @@ function drawBoss(lite){
     ctx.textAlign="center";ctx.font="700 14px 'Space Grotesk',system-ui,sans-serif";
     ctx.lineWidth=3;ctx.strokeStyle="rgba(11,18,38,.8)";
     ctx.strokeText("STOMP!",bx,ay-6);ctx.fillStyle="#EAFFE9";ctx.fillText("STOMP!",bx,ay-6);
-    const full=boss.phase===2?110:155,left=Math.max(0,1-boss.t/full);
+    const full=stunLen(boss),left=Math.max(0,1-boss.t/full);
     ctx.fillStyle="rgba(0,0,0,.4)";ctx.fillRect(bx-26,by+28,52,4);
     ctx.fillStyle="#6FCF7F";ctx.fillRect(bx-26,by+28,52*left,4);
     ctx.textAlign="left";
@@ -2646,6 +3188,67 @@ function bossBody(k,bx,by,body,trim,flap,stunned){
   }
 }
 
+/* ══════ DEBUG OVERLAY ════════════════════════════════════════════
+   Gated behind ?debug=1 (DBG), so normal players never see it and the
+   shipped build pays nothing for it. Shows the numbers you actually need
+   when a death feels unfair: which difficulty stage produced the terrain,
+   the seed-independent speed multiplier, and every collision box. */
+function drawDebug(){
+  const now=performance.now();
+  if(dbgLast){dbgAcc+=now-dbgLast;dbgN++;
+    if(dbgAcc>=250){dbgFps=Math.round(1000/(dbgAcc/dbgN));dbgAcc=0;dbgN=0;}}
+  dbgLast=now;
+
+  ctx.save();
+  /* hitboxes — player, platforms, enemies, boss weak point */
+  ctx.lineWidth=1;
+  ctx.strokeStyle="rgba(111,231,140,.9)";
+  ctx.strokeRect(P.x-camX,P.y,P.w,P.h);
+  ctx.strokeStyle="rgba(168,184,216,.55)";
+  for(const pl of plats){
+    if(pl.gone)continue;
+    const x=pl.x-camX; if(x>W+60||x+pl.w<-60)continue;
+    ctx.strokeRect(x,pl.y,pl.w,pl.h);
+  }
+  ctx.strokeStyle="rgba(255,95,122,.9)";
+  for(const f of foes){
+    if(f.dead)continue;
+    const x=f.x-camX; if(x>W+60||x+f.w<-60)continue;
+    ctx.strokeRect(x,f.y,f.w,f.h);
+  }
+  if(boss&&boss.st!=="warn"){
+    const B=bossHitBox();
+    ctx.strokeStyle=boss.st==="stun"?"rgba(111,231,140,1)":"rgba(255,201,74,.9)";
+    ctx.lineWidth=2;
+    ctx.strokeRect(boss.x-camX-B.w/2,boss.y-B.h/2,B.w,B.h);
+    if(boss.st==="stun"){                   /* the weak point, explicitly */
+      ctx.beginPath();ctx.arc(boss.x-camX,boss.y+10,14,0,7);ctx.stroke();
+    }
+  }
+
+  /* readout */
+  const lines=[
+    "fps "+dbgFps+"   objs "+(plats.length+orbs.length+foes.length+shots.length),
+    "dist "+Math.round(dist)+"m   stage "+stageOf(dist)+"   d "+diff().toFixed(3),
+    "spd x"+(((RMOD==="FAST"?TURBO_SPD:1)*(has("speed")?1.25:1))).toFixed(2)+
+      "   mod "+(RMOD||"none"),
+    "vel "+P.vx.toFixed(2)+" / "+P.vy.toFixed(2)+"   dashCd "+Math.max(0,Math.round(P.dashCd)),
+    "juice "+(juice/60).toFixed(2)+"s / "+(juiceMax/60).toFixed(2)+"s  (+"+(juiceExt/60).toFixed(1)+"s)",
+    "meter "+Math.round(meter)+"/"+juiceThresh()+"   hp "+hp+"/"+hpMax,
+    "hero "+SAVE.sel+" ["+activePass+"]   scheme "+OPT.scheme,
+    "boss "+(boss?boss.k+" "+boss.st+" p"+boss.phase+" hp"+boss.hp+"/"+boss.max+" life"+boss.life:"none"),
+  ];
+  ctx.font=F_SM;ctx.textAlign="left";ctx.textBaseline="top";
+  const bw=232,bh=lines.length*12+10;
+  ctx.fillStyle="rgba(11,18,38,.74)";
+  ctx.fillRect(6,WY+6,bw,bh);
+  ctx.strokeStyle="rgba(111,231,140,.5)";ctx.lineWidth=1;
+  ctx.strokeRect(6,WY+6,bw,bh);
+  ctx.fillStyle="#6FCF7F";
+  lines.forEach((t,i)=>ctx.fillText(t,12,WY+11+i*12));
+  ctx.restore();
+}
+
 /* ══════ HUD ══════════════════════════════════════════════════════
    Anchored to the TOP OF THE SCREEN, per the brief. (An earlier pass
    pinned it to the play band instead, which on a tall phone parked the
@@ -2683,12 +3286,24 @@ function drawHUD(){
     const k=clamp(juice/juiceMax,0,1);           /* was hard-coded /480 — with the
                                                     juicelong passive the bar drew
                                                     150% wide and overflowed */
-    ctx.fillStyle=juice<90&&frame%8<4?"#FFFFFF":juiceCol();
+    /* final 3s pulse, and a faster flash in the last second, so the end of
+       Juice Mode is read ahead of time instead of noticed after the fact */
+    const warn=juice<=180, last=juice<=60;
+    ctx.fillStyle=last?(frame%4<2?"#FFFFFF":"#FF5F7A")
+                 :warn?(frame%10<5?"#FFFFFF":juiceCol())
+                 :juiceCol();
     ctx.fillRect(bx,T+14,bw*k,8);
-    ctx.font=F_TAG;ctx.fillStyle="#FFFFFF";
-    ctx.fillText("JUICE MODE  "+(juice/60).toFixed(1)+"s",W/2,T+36);
+    /* the 15s ceiling drawn as a tick, so the cap is visible not just coded */
+    if(juiceMax<JUICE_CAP_F){
+      const cx=bx+bw*(juiceMax/JUICE_CAP_F);
+      ctx.fillStyle="rgba(255,255,255,.28)";ctx.fillRect(cx-1,T+12,1,12);
+    }
+    ctx.font=F_TAG;ctx.fillStyle=last?"#FF9BAA":"#FFFFFF";
+    ctx.fillText("JUICE MODE  "+(juice/60).toFixed(1)+"s"+
+      (juiceExt>0?"  (+"+(juiceExt/60).toFixed(1)+"s)":""),W/2,T+36);
     ctx.font=F_SM;ctx.fillStyle="rgba(255,255,255,.75)";
-    ctx.fillText("×2 DAMAGE · INVINCIBLE · INFINITE JUMPS · MAGNET",W/2,T+48);
+    ctx.fillText(juice>=JUICE_CAP_F?"MAX JUICE · ♦ CANNOT EXTEND FURTHER"
+                :"×2 DAMAGE · INVINCIBLE · ♦ CRYSTAL = +0.5s",W/2,T+48);
   } else {
     const th=juiceThresh(),pc=clamp(meter/th,0,1);
     ctx.fillStyle=pc>=.88?"#FFFFFF":"#FFC94A";
@@ -2706,7 +3321,19 @@ function drawHUD(){
   ctx.fillRect(W-70,Bm-22,52*clamp(dr,0,1),4);
   ctx.font=F_SM;ctx.textAlign="right";
   ctx.fillStyle=P.dashCd>0?"rgba(168,184,216,.6)":"rgba(111,207,127,.9)";
-  ctx.fillText(P.dashCd>0?"DASH":"DASH READY",W-18,Bm-28);
+  ctx.fillText(P.dashCd>0?"DASH":(dashChg>0?"CHARGING":"DASH READY"),W-18,Bm-28);
+  /* hold-to-dash charge ring: the player can see the dash arming, which is
+     what makes a hold gesture legible instead of guesswork */
+  if(dashChg>0&&P.dashCd<=0){
+    ctx.save();
+    ctx.translate(W-44,Bm-52);
+    ctx.strokeStyle="rgba(168,184,216,.35)";ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.stroke();
+    ctx.strokeStyle="#9BEFFF";ctx.lineWidth=3;ctx.lineCap="round";
+    ctx.beginPath();ctx.arc(0,0,13,-Math.PI/2,-Math.PI/2+dashChg*Math.PI*2);ctx.stroke();
+    ctx.lineCap="butt";
+    ctx.restore();
+  }
 
   /* the equipped hero ability, named so it is felt rather than buried */
   if(ABIL[activePass]){
@@ -2935,11 +3562,18 @@ function guideText(){
   const t=usedTouch;
   const a=t?"<div><b>TAP</b> anywhere to jump · <b>TAP AGAIN</b> in the air to double jump</div>"
            :"<div><b>SPACE / W / ↑</b> to jump · press again in the air to double jump</div>";
-  const b=t?"<div><b>SLIDE</b> your finger left or right to steer · <b>SWIPE DOWN</b> to dash</div>"
-           :"<div><b>A / D</b> or <b>← →</b> to steer · <b>SHIFT</b> to dash · <b>P</b> to pause</div>";
+  /* Scheme-aware: telling a player to slide when they chose buttons is
+     worse than no help at all. */
+  const b=!t?"<div><b>A / D</b> or <b>← →</b> to steer · <b>SHIFT</b> to dash · <b>P</b> to pause</div>"
+          :OPT.scheme==="buttons"
+           ?"<div><b>◀ ▶</b> to steer · <b>▲</b> to jump · <b>»</b> to dash</div>"
+           :"<div><b>SLIDE</b> your finger to steer · <b>HOLD STILL</b> to charge a dash</div>";
   const c="<div>Land dead-centre for <b>PERFECT</b> juice · stomp enemies · at 100% you go <b>JUICE MODE</b></div>";
+  /* Hearts are health within one run, not three separate attempts — say so
+     plainly rather than letting players read "lives" into it. */
+  const e="<div>You have <b>3 HEARTS</b> of health per run · grab a <b>♦ crystal</b> in Juice Mode for <b>+0.5s</b></div>";
   const d="<div>Boss: <b>DODGE</b> the flashing dive lane, then <b>STOMP</b> the green core while it is stunned</div>";
-  return a+b+c+d;}
+  return a+b+c+e+d;}
 function refreshGuides(){$("gStart").innerHTML=guideText();$("gPause").innerHTML=guideText();}
 
 $("bPlay").onclick=()=>{initAudio();sfx("click");start();};
@@ -2992,6 +3626,10 @@ $("oVol").onchange=()=>{sfx("click");};
 
 /* ══════ BOOT ═════════════════════════════════════════════════════ */
 function bootDone(){
+  /* A fatal error already told the player the engine is not running.
+     Tearing the overlay down here would replace that explanation with a
+     frozen black screen — the exact trap this build removes. */
+  if(window.__jjaFatal)return;
   window.__jjaBooted=true;                  /* stand the watchdog down */
   refreshGuides();
   if(IPHONE)$("iosNote").style.display="block";
@@ -3019,8 +3657,76 @@ if(/[?&]debug=1\b/.test(location.search)){
       abil:ABIL[activePass]?ABIL[activePass].short:"?",
       safeTop,WY,WH,
       audio:AC?AC.state:"none", tut:{i:tutI,done:SAVE.tut},
+      opt:{...OPT}, dashChg, stage:stageOf(dist), diff:diff(),
+      juiceExt:juiceExt, juiceCapF:JUICE_CAP_F,
+      input:{steer,padL,padR,prime:prime?prime.mode||"pending":null},
       save:JSON.parse(JSON.stringify(SAVE))
     };},
+    setScheme(s){OPT.scheme=s;syncOpts();syncSchemeUI();},
+    REACH,STAGES,
+    stageAt(m){return stageOf(m);},
+    /* Force a daily modifier (or none) for deterministic balance tests —
+       otherwise the value under test depends on what day it is. */
+    setMod(k){MOD=k;OPT.mod=!!k;$("oMod").checked=!!k;RMOD=k||null;},
+    turbo(){return{spd:TURBO_SPD,coin:TURBO_COIN};},
+    /* Live economy constants, so test/economy.mjs models the real values
+       instead of a copy that can silently drift out of date. */
+    economy(){
+      const perTier=[0,0,0,0,0,0,0];
+      RUN.forEach(r=>perTier[r.rar]++);
+      return{cost:COST,rarity:RAR.map(r=>r.n),perTier,
+             distBonus:150,bossBase:300,bossStep:90,
+             firstBoss:350,bossGap:550,achReward:2500,missionReward:2600,
+             heroes:RUN.map(r=>({id:r.id,rar:r.rar,cost:r.cost,pas:r.pas}))};},
+    /* Measured pickup density from the REAL generator over a stretch of
+       world, so the economy model rests on the game's actual orb/crystal
+       output rather than a guess. Returns counts per 100 metres. */
+    density(startM,sweeps){
+      plats.length=0;orbs.length=0;foes.length=0;genPrevY=null;
+      const d0=startM|0;dist=d0;camX=dist*10;
+      let x=camX;
+      for(let i=0;i<(sweeps||6);i++){x=gen(x);camX+=700;dist=Math.floor(camX/10);}
+      const metres=(camX-d0*10)/10;
+      let orb=0,cry=0,fru=0;
+      for(const o of orbs){if(o.fruit)fru++;else if(o.cry)cry++;else orb++;}
+      plats.length=0;orbs.length=0;foes.length=0;
+      return{metres:Math.round(metres),
+             orbPer100:+(orb/metres*100).toFixed(3),
+             cryPer100:+(cry/metres*100).toFixed(3),
+             fruPer100:+(fru/metres*100).toFixed(3)};},
+    extend(){return extendJuice(P.x,P.y);},
+    juiceLenOf(hero){const o=SAVE.sel;SAVE.sel=hero;const r=me();
+      const prev=activePass;activePass=r.pas;const v=juiceLen();
+      activePass=prev;SAVE.sel=o;return v;},
+    diffAt(m){const o=dist;dist=m;const v=diff();dist=o;return v;},
+    /* Drive the REAL generator over a stretch of world and hand back the
+       platforms it produced. The validator seeds Math.random before calling
+       this, so a failing run is reproducible from its seed alone. Testing
+       the shipped gen() rather than a reimplementation is the whole point —
+       a copy could drift from the code that actually runs. */
+    genSeq(mod,startM,sweeps){
+      const oldMod=RMOD;
+      RMOD=mod||null;
+      plats.length=0;orbs.length=0;foes.length=0;shots.length=0;
+      genPrevY=null;
+      dist=startM|0;camX=dist*10;
+      let x=camX;
+      for(let i=0;i<(sweeps||1);i++){
+        x=gen(x);
+        camX+=700;dist=Math.floor(camX/10);
+      }
+      const out=plats.map(p=>({x:p.x,y:p.y,w:p.w,high:!!p.high,spike:!!p.spike,type:p.type}));
+      RMOD=oldMod;
+      plats.length=0;orbs.length=0;foes.length=0;
+      return out;
+    },
+    holdDash(ms){                       /* simulate a stationary hold */
+      prime={id:-1,ax:0,x0:0,y0:0,t0:performance.now()-ms,mode:"",fired:false};
+      touchTick();const f=!!(prime&&prime.fired);prime=null;return f;},
+    steerThenHold(px,ms){               /* a steer must cancel a pending dash */
+      prime={id:-1,ax:0,x0:0,y0:0,t0:performance.now()-ms,mode:"",fired:false};
+      if(Math.abs(px)/VS>HOLD_SLOP)prime.mode="steer";
+      touchTick();const f=!!(prime&&prime.fired);prime=null;return f;},
     fillJuice(){meter=100;},
     forceBoss(){nextBoss=0;boss=null;},
     restart(){start();},
@@ -3031,7 +3737,7 @@ if(/[?&]debug=1\b/.test(location.search)){
     setBossKind(k){if(boss)boss.k=k;},
     spawnKind(k){nextBoss=0;boss=null;bossStep();if(boss&&BOSSES[k])boss.k=k;},
     probeGain(n){const b=meter;meter=0;gainJuice(n);const d=meter;meter=b;return +d.toFixed(3);},
-    probeDamage(){return ((has("slayer")||has("power"))?2:1)*(juice>0?2:1);},
+    probeDamage(){return (has("slayer")?2:1)*(juice>0?2:1);},
     keepAlive(){hp=hpMax;iFr=Math.max(iFr,4);},   /* heal only — never restarts */
     setDist(m){P.x=m*10;camX=P.x-W*.31;dist=m;edgeX=gen(camX+W);},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
@@ -3047,15 +3753,27 @@ if(/[?&]debug=1\b/.test(location.search)){
    was registered after load(), so a synchronous throw in startup meant
    it never got registered at all and the spinner ran forever. */
 setTimeout(()=>{try{if(!$("boot").classList.contains("gone"))bootDone();}catch(e){}},2500);
-try{
+/* Startup is a named, re-runnable step so the failure screen's Retry can
+   genuinely try again in place instead of only offering a page reload. */
+function startup(){
   $("bootTxt").textContent="Loading";
   syncOpts();
   resize();
+  /* Reaching here means the canvas, context and viewport are all real, so
+     the engine is safe to return to. The watchdog uses this to decide
+     whether "Return to menu" is an honest offer. */
+  window.__jjaEngineReady=true;
   load();
-}catch(e){
-  /* Boot far enough to be playable, and surface what went wrong */
+}
+window.__jjaRetry=function(){
+  window.__jjaFatal=false;
+  startup();
+};
+try{ startup(); }
+catch(e){
+  /* Do NOT bootDone() here: that hid the message and dropped the player into
+     a game that had not initialised. Show it and let them retry or reload. */
   if(window.__jjaReveal)window.__jjaReveal("Startup: "+(e&&e.message||e),true);
-  try{bootDone();}catch(_){}
 }
 })();
 </script>

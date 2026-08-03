@@ -67,6 +67,29 @@ canvas{display:block;touch-action:none}
   border-radius:50%;background:var(--amber);border:none}
 .volrow input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:rgba(168,184,216,.25)}
 .volrow input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:var(--amber)}
+/* control-scheme segmented picker */
+.schemerow{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.09em;color:var(--haze);text-transform:uppercase;flex-wrap:wrap;justify-content:center}
+.btn.seg{padding:9px 12px;min-height:38px;font-size:9px}
+.btn.seg.on{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:700}
+
+/* Scheme B on-screen controls. Semi-transparent so they never hide the
+   action, but every target is >=56px and clear of the safe-area insets. */
+#pad{position:absolute;inset:0;z-index:3;display:none;pointer-events:none}
+#pad.show{display:block}
+.padside{position:absolute;bottom:calc(12px + var(--sab));display:flex;gap:10px;align-items:flex-end}
+#padL{left:calc(12px + var(--sal))}
+#padR{right:calc(12px + var(--sar))}
+.pbtn{pointer-events:auto;width:60px;height:60px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(11,18,38,.42);color:var(--bone);font-size:19px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;touch-action:none;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:transform .06s ease,background .1s ease}
+.pbtn:active,.pbtn.hold{transform:scale(.92);background:rgba(255,201,74,.34)}
+.pbtn.jump{width:78px;height:78px;font-size:24px;background:rgba(255,201,74,.24);border-color:rgba(255,201,74,.5)}
+.pbtn.dash{background:rgba(127,231,255,.18);border-color:rgba(127,231,255,.42)}
+.pbtn.cool{opacity:.42}
+@media (max-height:420px){.pbtn{width:52px;height:52px;font-size:17px}.pbtn.jump{width:66px;height:66px;font-size:21px}}
+
 #pauseBtn{position:absolute;top:calc(6px + var(--sat));right:calc(8px + var(--sar));z-index:4;
   width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(11,18,38,.55);
   color:var(--bone);font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;
@@ -118,5 +141,12 @@ canvas{display:block;touch-action:none}
 .guide{display:grid;gap:4px;font-family:var(--mono);font-size:clamp(9px,1.6vh,10.5px);color:var(--haze);
   letter-spacing:.05em;text-align:center;line-height:1.6}
 .guide b{color:var(--amber);font-weight:500}
+/* run-over breakdown: label left, value right, one row per line */
+#dStats{display:grid;gap:1px;width:100%;max-width:330px;margin:0 auto;
+  font-size:clamp(8.5px,1.5vh,10.5px)}
+.drow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  border-bottom:1px solid rgba(168,184,216,.12);padding:1px 0}
+.drow i{font-style:normal;color:var(--haze);letter-spacing:.09em}
+.drow b{font-weight:600;color:var(--bone);text-align:right;letter-spacing:.05em}
 .warnrow{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--rose);text-align:center;
   text-transform:uppercase;margin:0}
