@@ -68,9 +68,15 @@ const infernoPas = await D(() => {
 });
 ok("Inferno's passive is fire, not damage", infernoPas === "firelord", infernoPas);
 
-/* 3. bosses: four kinds, first is the Juice Monster, three phases */
+/* 3. bosses: one per world, first is the Juice Monster, three phases */
 const st0 = await S();
-ok("four boss kinds defined", st0.bosses.length === 4, st0.bosses);
+ok("seven boss kinds defined — one per world", st0.bosses.length === 7, st0.bosses);
+/* every world must own exactly one boss, or a run reaches a world whose
+   boss slot is empty and the rotation fallback silently takes over */
+const worldMap = await D(() => window.JJA_DEBUG.state.bossWorlds);
+ok("every world has its own boss", Object.keys(worldMap).length === 7, worldMap);
+ok("no two worlds share a boss",
+   new Set(Object.values(worldMap)).size === 7, worldMap);
 await D(() => window.JJA_DEBUG.restart());
 await alive();
 await D(() => { const d = window.JJA_DEBUG; d.setDist(360); d.forceBoss(); });
@@ -96,6 +102,22 @@ ok("phase 2+ spawns minions", seenMinion);
 ok("kill drops fruit for the Lab", await D(() => {
   const f = window.JJA_DEBUG.state.save.fruit; return Object.values(f).some(v => v > 0); }),
   await D(() => window.JJA_DEBUG.state.save.fruit));
+/* the boss you meet belongs to the world you are standing in. Checked past
+   the first fight, which is always the Juice Monster by design. */
+const pairing = [];
+for (const w of Object.keys(worldMap)) {
+  const got = await D(async wn => {
+    const d = window.JJA_DEBUG;
+    d.restart(); d.setWins(1);                /* past the scripted first boss */
+    d.setDist(d.worldStart(wn)); d.forceBoss();
+    for (let i = 0; i < 60 && !d.state.boss; i++) await new Promise(r => requestAnimationFrame(r));
+    return d.state.boss && d.state.boss.k;
+  }, w);
+  pairing.push([w, got, worldMap[w]]);
+}
+ok("each world spawns its own boss",
+   pairing.every(([, got, want]) => got === want), pairing);
+
 /* each kind renders without error */
 for (const k of st0.bosses) {
   await alive();
