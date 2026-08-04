@@ -949,6 +949,31 @@ function pop(x,y,txt,col,s){
   q.x=x;q.y=y;q.txt=txt;q.col=col||"#FFE9A0";q.s=s||13;q.life=1;q.vy=-1.05;return q;}
 function clearPops(){for(let i=0;i<POPMAX;i++)POPS[i].life=0;}
 
+/* Boss banners own the middle of the band at the moment they matter most,
+   and popups are player-anchored and drift straight up through that line —
+   which stacked "JUICE MODE" on top of "DODGE THE DIVE — THEN STOMP THE
+   GLOWING CORE" and left neither readable. Popups fade out inside the strip
+   the banner reserves, and are untouched for the rest of the run. The banner
+   wins because it is the time-critical instruction and it is on screen for
+   barely a second, while juice state is mirrored in the top HUD anyway.
+   Band-local coordinates: the world layer is drawn translated by WY, and the
+   banner sits at WH*.42, so both are measured from the top of the band. */
+const POP_FADE=18;
+function popBandAlpha(y,s){
+  if(!boss)return 1;
+  const st=boss.st;
+  if(st!=="warn"&&(st!=="dead"||boss.t<=60))return 1;
+  const c=WH*.42, top=c-34, bot=c+(st==="dead"?70:56);
+  /* Measure the popup's ink box, not its baseline. fillText draws a full
+     cap-height ABOVE the baseline, so a 24px popup sitting just under the
+     strip still paints straight up through it — which is exactly how the
+     faded "JUICE MODE" kept grazing the DODGE line after the first pass. */
+  const h=s||13, iT=y-h, iB=y+h*.25;
+  if(iT<=bot&&iB>=top)return 0;
+  if(iT>bot&&iT<bot+POP_FADE)return (iT-bot)/POP_FADE;
+  if(iB<top&&iB>top-POP_FADE)return (top-iB)/POP_FADE;
+  return 1;}
+
 /* ── in-place compaction: keeps the per-frame allocation count at zero
    where the original allocated 7 fresh arrays every frame ── */
 function compact(a,keep){let j=0;for(let i=0;i<a.length;i++){const v=a[i];if(keep(v))a[j++]=v;}a.length=j;}
@@ -2190,7 +2215,8 @@ function draw(){
   /* ── floating text (drawn in world space, above everything) ── */
   ctx.textAlign="center";
   for(let i=0;i<POPMAX;i++){const q=POPS[i];if(q.life<=0)continue;
-    ctx.globalAlpha=Math.min(1,q.life*1.6);
+    const ba=popBandAlpha(q.y,q.s);if(ba<=0)continue;
+    ctx.globalAlpha=Math.min(1,q.life*1.6)*ba;
     ctx.font="700 "+q.s+"px 'Space Grotesk',system-ui,sans-serif";
     ctx.lineWidth=3;ctx.strokeStyle="rgba(11,18,38,.75)";
     ctx.strokeText(q.txt,q.x-camX,q.y);
@@ -2754,6 +2780,8 @@ if(/[?&]debug=1\b/.test(location.search)){
     setBossKind(k){if(boss)boss.k=k;},
     spawnKind(k){nextBoss=0;boss=null;bossStep();if(boss&&BOSSES[k])boss.k=k;},
     probeGain(n){const b=meter;meter=0;gainJuice(n);const d=meter;meter=b;return +d.toFixed(3);},
+    probeBandAlpha(y,s){return popBandAlpha(y,s);},
+    bannerY(){return WH*.42;},
     probeDamage(){return ((has("slayer")||has("power"))?2:1)*(juice>0?2:1);},
     keepAlive(){hp=hpMax;iFr=Math.max(iFr,4);},   /* heal only — never restarts */
     setDist(m){P.x=m*10;camX=P.x-W*.31;dist=m;edgeX=gen(camX+W);},
