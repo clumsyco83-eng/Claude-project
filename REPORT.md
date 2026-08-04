@@ -305,38 +305,127 @@ row** (real streak tracking). Awards unlock 5 Juice Mode glow skins.
 
 ---
 
-# Readability pass (2026-08-04)
+# Polish & balance pass (2026-08-03)
 
-## Bug: the boss banner and the popup stack fought for the same line
+Deliverable: `jumpjuice.html` (canonical source) + regenerated `split/`.
+Verification: 60×5 smoke · 36 features · 19 hostile · **76 balance** ·
+**20,000 generation sequences** · economy simulation · 30-minute soak.
 
-Found by reading the screenshots rather than the assertions — every suite
-was green while this was on screen.
+## 1. Confirmed bugs found and fixed
 
-Floating popups (`pop()`) are anchored to the player and drift upward with
-`vy = -1.05`. The boss banner is drawn at a fixed `WH*.42`, "on the band, at
-eye level". At the one moment both are guaranteed to be on screen — Juice
-Mode triggering as a boss warns — the popup column drifts straight through
-the banner. `JUICE MODE`, `MOUNTAIN` and `DOUBLE POINTS` landed on top of
-`DODGE THE DIVE — THEN STOMP THE GLOWING CORE`, and neither was readable.
+Only bugs that were actually reproduced are listed.
 
-Visible on desktop and on iPhone portrait. The cost is real: that subtitle
-only shows for `SAVE.bossKills < 1`, so the run where it is unreadable is a
-first-timer's only explanation of the dodge→stomp loop.
+| # | Bug | Evidence | Fix |
+|---|---|---|---|
+| P1 | **"Continue anyway" dropped the player into a dead engine.** On a fatal failure (null canvas) the boot screen offered one button that force-dismissed the overlay, replacing the explanation with a frozen black screen | `test/hostile.mjs` cases "getContext always null" / "getContext throws" | Recovery is matched to severity: recoverable → Retry · Reload · (Return to menu only when `__jjaEngineReady`); fatal → Reload · Copy error details, and **no** route into the engine |
+| P2 | **A startup throw erased its own error message.** The `catch` called `__jjaReveal(...,true)` then `bootDone()`, which tore down the overlay ~0ms later | Code path in `startup()` | `bootDone()` now returns early when `__jjaFatal` is latched |
+| P3 | **No player setting was ever saved.** Sound, vibration, volume, Calm Mode, Battery Saver, inverted steer and the daily-modifier toggle lived only in the DOM and reset on every reload | Reload test: all 7 reverted to defaults | `SAVE.opt` block + `applyOpts()`/`syncOpts()`, with validated migration for saves that have no `opt` at all |
+| P4 | **No Double Jump could generate impossible terrain.** Gaps reached **211px** against a **158px** single-jump reach, and rises reached **150px** against a **120px** apex — unavoidable deaths with no route | Derived from the shipped physics constants; reproduced by `test/genvalidate.mjs` with the clamp removed (mutation test) | `REACH` budget + NODBL clamps (gap ≤120px, rise ≤88px, landings ≥72px), high road suppressed, floating crystals lowered into reach |
+| P5 | **The boss stun-window bar lied in phase 3.** The HUD assumed a 155-frame window while the state machine closed it at 95 — wrong exactly where precision matters most | Two divergent expressions for the same value | Single `stunLen(b)` used by both |
+| P6 | **Falling bypassed the damage system.** The fall-out path decremented `hp` inline, skipping `hurt()` — and therefore the shield, the i-frames and the hearts-remaining readout | Squid's shield did not absorb a fall | Fall now honours the same contract as every other hit |
+| P7 | **`bossSeen` was never reset between runs**, so the run-over screen would report a boss on later runs that never met one | Introduced with the new run-over screen; caught before shipping | Reset in `start()` |
+| P8 | **`FAST` was labelled "Double speed" but ran ×1.34.** The label promised a modifier that never existed | `MODS` vs the `spd` expression | Honest ×1.25 "Turbo Day", +40% coins |
+| P9 | **Inferno and Slayer shared one passive.** Both granted "×2 damage"; two headline heroes felt identical | `PASS.power` vs `PASS.slayer` | Inferno → `firelord` (fire immunity + flame-burst landings); damage belongs to Slayer, which gains +1 into a stunned boss |
+| P10 | **Two paid heroes had no passive at all** (Cactus 900, Squid 2200 — `pas:"none"`), and 8 heroes shared it | Roster scan | Every paid hero now has an identity; asserted by `test/balance.mjs` |
+| P11 | **Crystals were wasted during Juice Mode.** The meter is frozen while juiced, so `gainJuice(26)` did nothing | `gainJuice()` early-returns when `juice>0` | Crystals now buy **+0.5s** instead |
+| P12 | **`fireproof` was defined but assigned to no hero** — dead code | Roster scan | Folded into Inferno's `firelord` |
+| P13 | Duplicated comment block in the boss renderer | Present in `HEAD` | Removed |
 
-**Fix.** Popups fade out inside the strip the banner reserves, and are
-untouched the rest of the run (`popBandAlpha()`). The banner wins the
-collision because it is the time-critical instruction and it is on screen
-for about a second, while juice state is already mirrored in the top HUD.
+## 2. Balance changes
 
-**Second pass — the first fix was measured wrong.** It tested the popup's
-*baseline* against the strip. `fillText` paints a full cap-height **above**
-the baseline, so a 24px popup sitting just below the strip still drew up
-into it, leaving a faded `JUICE MODE` ghost grazing the DODGE line. Now the
-popup's ink box (`y - size` … `y + size*0.25`) is tested, and the size is
-threaded through from the draw loop.
+### Juice Mode
 
-## Verification
-`test/features.mjs` — 8 new assertions (34 → 43), all passing.
-`test/smoke.mjs` — 60 × 5 device profiles, unchanged, all passing.
-`test/hostile.mjs` — 19 cases, no hangs.
-Screenshots re-shot on all 4 profiles: all three banner lines legible, no ghost.
+| | Before | After |
+|---|---|---|
+| Standard hero | 480f / **8.0s** | 720f / **12.0s** |
+| Bolt | 288f / **4.8s** (×0.6) | 585f / **9.75s** |
+| Hard cap | none | 900f / **15.0s** |
+| Extension | none | **+0.5s** per crystal collected while juiced |
+| `juicelong` hero | 720f | 1080f → capped 900f |
+| `rainbow` brew | ×1.6 | ×1.6 → capped 900f |
+| Wind-down warning | 1.5s | **3.0s** + distinct final-second cue |
+
+Bolt compensation: **+30% meter gain**, **×3** juiced score multiplier (was ×2).
+
+### Difficulty
+
+`min(dist/1600, 1)` → five interpolated stages (0.10 @400m · 0.34 @1000m ·
+0.62 @2000m · 0.86 @3500m · 1.00 @6000m). Continuous, monotonic, capped.
+
+### Daily modifiers
+
+`FAST` ×1.34 → **×1.25 + 40% coins**, renamed **Turbo Day**.
+`NODBL` gains its own generation budget (see P4).
+
+### Economy
+
+| | Before | After |
+|---|---|---|
+| UNCOMMON | 900 | **18,000** |
+| RARE | 2,200 | **44,000** |
+| EPIC | 5,000 | **100,000** |
+| LEGENDARY | 11,000 | **220,000** |
+| RAINBOW | 20,000 | **400,000** |
+| MYTHIC | 36,000 | **720,000** |
+| Boss reward | 600 + 250n | **300 + 90n** |
+| Mission reward | 200 | **2,600** |
+| Achievement reward | 300 | **2,500** |
+| Boss HP | 6 + 2n (uncapped) | 6 + 2n, **capped 18** |
+
+Measured outcome (`test/economy.mjs`): first paid hero **0.6 min → 13.3 min**
+for an average player; boss share of income **45–69% → 27–46%**.
+
+> Saves are preserved in full — coins, heroes, XP, achievements and unlocks all
+> carry over. Only *purchasing power* changed. Nothing is ever taken away.
+
+### Heroes
+
+New passives with real mechanics: `firelord`, `aircontrol`, `shield`,
+`walljump`, `combo`, `fruity`. Full table in `README.md`.
+
+## 3. Tests
+
+| Suite | Result |
+|---|---|
+| `smoke.mjs` × 5 device profiles | 60/60 each, 300 total |
+| `features.mjs` | 36/36 (2 assertions updated for Inferno's new identity) |
+| `hostile.mjs` | 19/19, under a **stricter** contract (fatal screens must not leak a route into a dead engine) |
+| `balance.mjs` **(new)** | 82/82 |
+| `genvalidate.mjs` **(new)** | 10,000 normal + 10,000 NODBL sequences, **304,356 platforms**, 0 invalid |
+| `economy.mjs` **(new)** | pacing inside the 10–20 min target band |
+| `soak.mjs` **(new)** | 30 minutes continuous — **PASS** |
+
+### 30-minute soak result
+
+```
+samples            : 178
+heap first/last    : 9.5MB -> 9.5MB      (growth ratio 1.00)
+peak platforms     : 20
+peak orbs          : 32
+peak enemies       : 5
+peak shots         : 4
+DOM nodes f/l      : 250 -> 250
+distance f/l       : 265m -> 46,029m
+object arrays bounded : yes
+DOM stable            : yes
+js errors             : none
+```
+
+No memory growth, no unbounded arrays, no DOM accumulation, no audio-node
+leak and no slowdown over 46km of continuous play with bosses and Juice Mode
+forced throughout. (Headless Chromium with software GL — not a proxy for
+thermal or battery behaviour on a real phone.)
+
+`genvalidate.mjs` was **mutation-tested**: with the NODBL gap clamp removed it
+correctly failed on 120/120 sequences, so it is proven to detect the class of
+bug it guards.
+
+All suites pass against **both** the canonical file and the regenerated
+`split/` build.
+
+## 4. Not verified
+
+* **No real iPhone or Android hardware was used.** All mobile results are
+  Chromium device emulation (iPhone 13, Pixel 5, iPad gen 7).
+* 120Hz / ProMotion timing, real haptics, real iOS audio-unlock, thermal and
+  battery behaviour all still need a device pass.

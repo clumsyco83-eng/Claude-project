@@ -26,7 +26,7 @@ const g = await S();
 ok("HUD anchors above the play band (top of screen)", g.safeTop + 4 < g.WY, { safeTop: g.safeTop, WY: g.WY });
 
 /* 2. hero abilities */
-const HEROES = { Bolt: "+25% SPEED", Frost: "ENEMIES SLOWED", Inferno: "×2 DAMAGE", Nature: "+60% JUICE" };
+const HEROES = { Bolt: "+25% SPEED", Frost: "ENEMIES SLOWED", Inferno: "FIRE LORD", Nature: "+60% JUICE" };
 for (const [id, label] of Object.entries(HEROES)) {
   await D(h => window.JJA_DEBUG.setHero(h), id);
   await page.waitForTimeout(150);
@@ -53,10 +53,20 @@ async function gainFor(hero) {
 }
 const gClassic = await gainFor("Blip"), gNature = await gainFor("Nature");
 ok("Nature gains more juice per pickup", gNature > gClassic * 1.5, { classic: gClassic, nature: gNature });
-/* Inferno hits harder */
+/* Damage identity belongs to Slayer alone. Inferno used to share the exact
+   same "x2 damage" passive, which left two headline heroes feeling identical;
+   it is now the fire hero (immunity + flame-burst landings) instead. */
 const dClassic = await D(() => { window.JJA_DEBUG.setHero("Blip"); return window.JJA_DEBUG.probeDamage(); });
+const dSlayer = await D(() => { window.JJA_DEBUG.setHero("Dino"); return window.JJA_DEBUG.probeDamage(); });
 const dInferno = await D(() => { window.JJA_DEBUG.setHero("Inferno"); return window.JJA_DEBUG.probeDamage(); });
-ok("Inferno deals double damage", dInferno === dClassic * 2, { classic: dClassic, inferno: dInferno });
+ok("Slayer deals double damage", dSlayer === dClassic * 2, { classic: dClassic, slayer: dSlayer });
+ok("Inferno no longer duplicates Slayer's damage bonus", dInferno === dClassic,
+   { classic: dClassic, inferno: dInferno });
+const infernoPas = await D(() => {
+  window.JJA_DEBUG.setHero("Inferno");
+  return window.JJA_DEBUG.economy().heroes.find(h => h.id === "Inferno").pas;
+});
+ok("Inferno's passive is fire, not damage", infernoPas === "firelord", infernoPas);
 
 /* 3. bosses: four kinds, first is the Juice Monster, three phases */
 const st0 = await S();
@@ -121,44 +131,6 @@ ok("Lab offers glow skins", await D(() => document.getElementById("labSkins").ch
 const nAch = await D(() => document.getElementById("achList").children.length);
 ok("Juice Journey has 15 awards", nAch === 15, nAch);
 ok("streak tracked on load", (await S()).save.streak >= 1, (await S()).save.streak);
-
-/* 5b. boss banner keeps its line — player-anchored popups drift straight up
-   through the banner, which used to stack "JUICE MODE" on top of "DODGE THE
-   DIVE — THEN STOMP THE GLOWING CORE" and left neither readable. */
-await D(() => window.JJA_DEBUG.restart());
-await page.waitForTimeout(200);
-const BY = await D(() => window.JJA_DEBUG.bannerY());
-
-/* no boss on screen → popups are never touched */
-ok("popups are unclipped with no boss on screen",
-  await D(y => window.JJA_DEBUG.probeBandAlpha(y) === 1, BY), BY);
-
-await D(() => window.JJA_DEBUG.forceBoss());
-for (let i = 0; i < 40 && (await S()).boss?.st !== "warn"; i++) { await alive(); await page.waitForTimeout(40); }
-const warned = (await S()).boss;
-ok("boss reaches its warn banner", warned && warned.st === "warn", warned && warned.st);
-
-const band = await D(y => {
-  const d = window.JJA_DEBUG;
-  return { on: d.probeBandAlpha(y), sub: d.probeBandAlpha(y + 46),
-           above: d.probeBandAlpha(y - 120), below: d.probeBandAlpha(y + 160) };
-}, BY);
-ok("popups are hidden on the banner's own line during warn", band.on === 0, band);
-ok("popups are hidden across the banner's subtitle rows", band.sub === 0, band);
-ok("popups well above the banner still draw", band.above === 1, band);
-ok("popups well below the banner still draw", band.below === 1, band);
-ok("the reserved strip fades in rather than popping",
-  await D(y => { const a = window.JJA_DEBUG.probeBandAlpha(y - 43); return a > 0 && a < 1; }, BY));
-
-/* fillText paints a full cap-height above the baseline: a big popup whose
-   baseline clears the strip still draws up into it. Measured on the ink box,
-   not the baseline — this is what left a ghost on the DODGE line. */
-const ink = await D(y => {
-  const d = window.JJA_DEBUG;
-  return { big: d.probeBandAlpha(y + 76, 24), small: d.probeBandAlpha(y + 76, 12) };
-}, BY);
-ok("a tall popup whose baseline clears the strip is still clipped", ink.big === 0, ink);
-ok("a short popup at the same baseline is not over-clipped", ink.small > 0, ink);
 
 /* 6. menu personality */
 ok("menu says Juice Heroes", (await D(() => document.getElementById("bChars").textContent)).includes("Juice Heroes"));

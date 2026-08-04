@@ -86,14 +86,32 @@ for (const [name, patch] of Object.entries(CASES)) {
              txt: (document.getElementById("bootTxt") || {}).textContent };
   }).catch(e => ({ gone: false, disp: "eval-failed:" + e.message }));
   /* Success = the player is not trapped: either the game booted, or it
-     explained itself and offered a way through. */
-  const escaped = await page.evaluate(() => {
-    const e = document.getElementById("bootErr"), k = document.getElementById("bootSkip");
-    return !!(e && e.style.display !== "none" && e.textContent) &&
-           !!(k && k.style.display !== "none");
-  }).catch(() => false);
+     explained itself AND offered at least one real recovery action.
+     "Recovery" no longer means a blanket "Continue anyway" — that used to
+     drop the player into a frozen, uninitialised game. A fatal failure must
+     offer Reload + Copy error and must NOT offer any route into the engine. */
+  const esc = await page.evaluate(() => {
+    const vis = id => {
+      const n = document.getElementById(id);
+      return !!n && n.style.display !== "none";
+    };
+    const e = document.getElementById("bootErr");
+    return {
+      explained: !!(e && e.style.display !== "none" && e.textContent),
+      acts: vis("bootActs"),
+      reload: vis("bootReload"),
+      retry: vis("bootRetry"),
+      menu: vis("bootMenu"),
+      copy: vis("bootCopy"),
+      fatal: !!window.__jjaFatal,
+    };
+  }).catch(() => ({}));
+  const escaped = !!(esc.explained && esc.acts && esc.reload);
   const stuck = !st.gone && !escaped;
+  /* A fatal failure must never expose a way into a game that is not running. */
+  const leak = !st.gone && esc.fatal && (esc.menu || esc.retry);
   if (stuck) fails++;
+  if (leak) { fails++; console.log("  ! LEAK  " + name + ": fatal screen offered a route into a dead engine"); }
   console.log((stuck ? "✗ STUCK  " : (st.gone ? "✓ boots  " : "✓ warns  ")) + name +
     (errs.length ? "\n           error: " + errs[0].split("\n")[0] : ""));
   await ctx.close();
