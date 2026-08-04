@@ -71,9 +71,26 @@ Status key: `OK` verified working · `FIX` was broken, now fixed · `NEW` added
 | 35 | Tutorial | NEW | |
 | 36 | Loading screen | NEW | |
 | 37 | Orientation handling | NEW | dead `#rot` CSS existed but was never wired up |
+| 38 | Boss roster (7) | NEW | one per world; 4 bosses used to rotate against 7 worlds |
+| 39 | Per-world music | NEW | score followed only the juice state, not the world |
+| 40 | Install / offline (PWA) | NEW | manifest, service worker, icons, iOS launch images |
 
 ## Result
 
 `node test/smoke.mjs --device=<desktop|edge|iphone|android|tablet>` — 60 assertions,
-**60/60 on all five profiles**, zero JS errors. Screenshots in `shots/`.
+**60/60 on all five profiles**, zero JS errors. Screenshots in `shots/`,
+per-boss captures in `shots4/`.
+
+Full suite at the current head:
+
+| Suite | Assertions | Result |
+|---|---|---|
+| `smoke.mjs` × 5 profiles | 60 each | 300/300 |
+| `features.mjs` | 48 | 48/48 |
+| `balance.mjs` | 83 | 83/83 |
+| `hostile.mjs` | 19 | 19/19, no hangs |
+| `pwa.mjs` | 25 | 25/25 |
+| `genvalidate.mjs` | 10k + 10k sequences | 0 invalid |
+| `economy.mjs` | pacing model | first paid hero 13.2 min |
+
 Full findings and fixes: [REPORT.md](REPORT.md).

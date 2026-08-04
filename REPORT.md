@@ -429,3 +429,165 @@ All suites pass against **both** the canonical file and the regenerated
   Chromium device emulation (iPhone 13, Pixel 5, iPad gen 7).
 * 120Hz / ProMotion timing, real haptics, real iOS audio-unlock, thermal and
   battery behaviour all still need a device pass.
+
+---
+
+# Pass 4 — completion pass (2026-08-04)
+
+Three open items from the previous handoff's "explored but not built" list,
+plus the ship packaging the project had never had. Full test matrix green
+throughout; the suites grew from 197 to 275 assertions.
+
+## 1. Every world got its own boss
+
+**Symptom (design, not a crash).** Four bosses rotated on
+`BOSS_ORDER[(floor(dist/ZONE) + bossWins) % 4]` against a **seven**-world
+cycle. Because 4 and 7 are coprime the pairing drifted through every
+combination, so the Flame Djinn — tagged `BORN IN THE VOLCANO` — regularly
+turned up in the ice, and three worlds had no fight of their own at all.
+
+**Fix.** Added `FROST TITAN` (ice), `STORM DRAKE` (storm) and `CLOUD KRAKEN`
+(sky), then bound the roster to the worlds: after the scripted Juice Monster
+opener, the boss you meet is the one that belongs to where you are standing.
+`BOSS_OF_WORLD` is derived from the roster rather than written out twice, so a
+roster edit cannot leave a world pointing at a boss that no longer exists, and
+the rotation survives as a fallback so this can never spawn nothing.
+
+Three renderer behaviours were hard-coded `boss.k === "..."` comparisons
+scattered across four unrelated places — which is why adding a boss used to be
+a four-site edit. They are roster fields now: `world`, `eyes`, `glow`.
+
+### Bugs found while doing it
+
+| # | Bug | Detail |
+|---|---|---|
+| 44 | **Fire immunity applied to ice and lightning** | `fireSafe` keyed off `sh.k`, the *physics* class. Every straight-flying boss shot shares `k === "fire"` (only rocks differ, because they arc), so Inferno and Blaze shrugged off shards, bolts, gusts, blobs and eye beams. Now keyed off `sh.bk`, the projectile itself. |
+| 45 | **Every boss threw the same fireball** | The renderer branched on `k`, so all four non-rock bosses drew an identical orange ball. Each projectile now draws its own ammunition. |
+| 46 | **Death text reported "BURNED" for a snowball** | One hard-coded string for all projectiles. Now per kind: FROZEN, ZAPPED, CRUSHED, DISSOLVED, VAPORISED, BLOWN AWAY. |
+| 47 | **Boss contact said "THE SKY TYRANT GOT YOU"** | A pre-roster placeholder naming none of the seven bosses. Now names the one that hit you. |
+
+### Silhouette work
+
+Both new silhouettes were wrong on first render and were caught by looking at
+the screenshots, not by a test:
+
+* The **Cloud Kraken** mantle was four overlapping circles filled in one path.
+  `OUT()` outlines the path it is given, so it stroked every internal seam and
+  the boss read as a ring of bubbles. Retraced as a single closed path.
+* The **Storm Drake** filled its wings with the bright trim colour, which made
+  two bright shapes either side of a small head — it read as a bird. Wings are
+  now body-coloured with a charged edge, and the neck and snout extend forward
+  into the player's lane.
+
+## 2. Every world got its own music
+
+**Symptom.** The score changed only with the juice state: one loop, one key,
+one tempo, across seven visually distinct worlds and every boss fight.
+
+**Fix.** Eight themes — seven worlds plus a boss theme that overrides the
+world's wherever the fight happens. Each names its own key, mode, tempo,
+oscillator per voice, bass rhythm and lead level. All eight are the same
+four-part texture (bass · kick · mid · lead) re-voiced, so arriving in a new
+world is a key change rather than a different song starting mid-stride.
+
+The theme is cached in `curMus` and set on world change, boss spawn, boss end
+and run start — `musicTick()` runs every rendered frame and must not do
+lookups. Juice Mode still lifts the tempo, now ×1.17 of whatever theme is
+playing rather than a hard-coded 128 → 150.
+
+| # | Bug | Detail |
+|---|---|---|
+| 48 | **Restarting during a boss fight kept the boss theme** | `curMus` was not reset with the run, so the opening forest played the boss track until the next world boundary. Fixed by re-deriving the theme in `start()`. |
+
+**A test caught a second one.** The world-theme assertion initially failed for
+six of seven worlds, all reporting the boss theme. Not a music bug: the first
+boss is due at 350m, which is *inside the second world*, so jumping a test
+into any world past the first legitimately spawned one. `holdBoss()` was added
+as the inverse of `forceBoss()`. Worth recording because the test was right
+and the obvious reading of its output was wrong.
+
+## 3. It installs, and it plays offline
+
+The project had carried one unsolved problem from the beginning: **iOS will
+not run the game from a file.** Quick Look renders HTML but never executes
+scripts, and iOS Safari cannot open a local `file://` page at all. The
+previous answer was a CSS hint on the loading screen telling the player to
+host it somewhere.
+
+Installing is the actual fix. Served once over HTTPS and added to the home
+screen, the game launches fullscreen with no browser chrome and runs with no
+network at all — which is what it was always designed for.
+
+`node test/build-pwa.mjs` → `dist/pwa/`: manifest, cache-first service worker,
+16 icons, 18 iOS launch images, and install screenshots captured from the real
+game. An in-game **Install** button triggers the real prompt where the browser
+offers one, and on iOS — which never fires `beforeinstallprompt` and has no
+programmatic install — explains the Share route instead of pretending to be a
+one-tap install.
+
+**The single file stays canonical and still runs untouched from disk.** The
+manifest link 404s harmlessly, and service-worker registration is skipped on
+`file://` where `register()` throws a `SecurityError` — which in this codebase
+would be a top-level throw during boot, the exact failure mode the watchdog
+exists for. Both are asserted in `test/pwa.mjs`, not assumed.
+
+### Two things the first build got wrong
+
+* **The iOS splash set weighed 40 MB.** Backgrounds were radial gradients;
+  a gradient across 2732×2048 is millions of distinct colours and PNG cannot
+  pack it. Flattened: **40 MB → 0.4 MB**, for a glow nobody sees during a
+  launch that lasts one frame. Whole build is now 4.2 MB.
+* **The icon was illegible below 96px.** Artwork was drawn at 150px on a 512
+  canvas — swimming in dead space — behind a dashed jump arc that downsampled
+  into scattered specks. Hero enlarged to fill the tile, arc replaced with
+  three heavy speed lines.
+
+The service worker caches each asset **individually** rather than through
+`cache.addAll()`, which rejects the entire install if any single request 404s.
+One missing icon would otherwise cost all offline support.
+
+## 4. Verification
+
+| Suite | Before | Now | Result |
+|---|---|---|---|
+| `smoke.mjs` × 5 profiles | 60 each | 60 each | 300/300 |
+| `features.mjs` | 36 | **48** | 48/48 |
+| `balance.mjs` | 82 | **83** | 83/83 |
+| `hostile.mjs` | 19 | 19 | 19/19, no hangs |
+| `pwa.mjs` | — | **25** | 25/25 |
+| `genvalidate.mjs` | — | — | 122,555 platforms, 0 invalid |
+| `economy.mjs` | — | — | first paid hero 13.2 min (target 10–20) |
+
+New coverage worth naming:
+
+* **`pwa.mjs` kills the server mid-session** and requires the game to still
+  boot and play. That is the only assertion that actually proves offline
+  support; a manifest and a registered worker prove nothing on their own.
+* It also verifies every icon the manifest promises **exists** and that its
+  declared size **matches the real pixels** (read from the PNG IHDR). A 404 or
+  a size mismatch is the classic reason an install prompt silently never
+  appears.
+* **`musicProbe()`** forces all eight themes through the real scheduler.
+  Each theme names its own oscillator types, and an invalid one throws from
+  `createOscillator` — which would otherwise surface only as silence, in one
+  world, for whoever played that far.
+* `features.mjs` asserts no two worlds share a boss, and that arriving in a
+  world switches to its theme.
+
+All suites pass against **both** `jumpjuice.html` and the regenerated
+`split/` build.
+
+## 5. Still not verified
+
+Unchanged from the previous pass, and still the one genuinely open item:
+
+* **No real iPhone or Android hardware was used.** Every mobile result in this
+  repo is Chromium device emulation (iPhone 13, Pixel 5, iPad gen 7).
+* Real iOS audio-unlock, real haptics, 120Hz ProMotion timing, thermal and
+  battery behaviour still need a device pass.
+* **The install flow specifically has not been through a real home-screen
+  install on either platform.** `beforeinstallprompt` cannot be fired
+  synthetically, so what is proven is the manifest's validity, the worker's
+  behaviour, real offline play, and that our own button logic does not throw.
+  The final step — tapping Install on a real phone and launching from the
+  home screen — is untested.

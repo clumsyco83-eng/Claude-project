@@ -1,7 +1,6 @@
 JUMP JUICE ADVENTURE — transfer package
 =======================================
-Branch : claude/jump-juice-polish-balance-eeikjx
-HEAD   : 44895e7
+Branch : claude/project-completion-ul0dcd
 Repo   : clumsyco83-eng/Claude-project
 
 READ START-HERE.md FIRST. It is the complete cold-start handoff.
@@ -15,42 +14,57 @@ GENERATED (never edit — rebuilt by the commands below)
   split/boot.js ................  "
   split/jumpjuice.js ...........  "
   dist/jumpjuice-artifact.html .. from: node test/build-artifact.mjs
+  dist/pwa/ ..................... from: node test/build-pwa.mjs
+                                  THE DEPLOYABLE BUILD — installable, offline
   dist/hosted-sim.html .......... hosting simulation harness
   split/README.md ............... EXCEPTION - hand-maintained
 
 DOCUMENTATION
   START-HERE.md ................. master handoff — read first
-  README.md ..................... run/build/test, balance tables, save format
-  REPORT.md ..................... full bug log across all three passes
+  README.md ..................... run/build/deploy/test, balance + world tables
+  REPORT.md ..................... full bug log across all four passes (48 bugs)
   HANDOFF.md .................... systems overview + gotchas
-  AUDIT.md ...................... 37-system checklist
+  AUDIT.md ...................... 40-system checklist
+  PRIVACY.md .................... privacy policy (the game collects nothing)
+  STORE.md ...................... store listing copy + asset locations
   MANIFEST.txt .................. this file
 
 TESTS AND BUILD SCRIPTS
   test/split.mjs ................ build: jumpjuice.html -> split/
   test/build-artifact.mjs ....... build: -> dist/jumpjuice-artifact.html
+  test/build-pwa.mjs ............ build: -> dist/pwa/  (installable)
   test/smoke.mjs ................ 60 assertions x 5 device profiles
-  test/features.mjs ............. 36 — heroes, bosses, Juice Lab, awards
+  test/features.mjs ............. 48 — heroes, bosses, music, Lab, awards
   test/hostile.mjs .............. 19 crippled-browser boot cases
-  test/balance.mjs .............. 82 — the balance/systems contract
+  test/balance.mjs .............. 83 — the balance/systems contract
+  test/pwa.mjs .................. 25 — manifest, SW, icons, REAL offline play
   test/genvalidate.mjs .......... 10k + 10k procedural fairness sweep
   test/economy.mjs .............. coins/min + time-to-unlock simulation
   test/soak.mjs ................. long-run memory/stability soak
   test/shots.mjs ................ screenshot capture
 
 SCREENSHOTS
-  shots3/ ....................... CURRENT state (post-polish-pass)
-  shots/, shots2/ ............... earlier passes, kept for reference
+  shots4/ ....................... CURRENT — all seven bosses, one per world
+  shots/, shots2/, shots3/ ...... earlier passes, kept for reference
 
 QUICK START
   node test/split.mjs && node test/smoke.mjs --device=iphone
+
+DEPLOY
+  node test/build-pwa.mjs
+  upload dist/pwa/ to any static host over HTTPS
+  (HTTPS is required — service workers will not register without it)
 
 TEST ENVIRONMENT REQUIRED
   Playwright : /opt/node22/lib/node_modules/playwright
   Chromium   : /opt/pw-browsers/chromium-1194/chrome-linux/chrome
   If those paths differ, update executablePath + the import in test/*.mjs
+  test/pwa.mjs additionally needs dist/pwa/ built first.
 
 STATUS
-  All suites pass on both builds. 304,356 generated platforms validated.
-  30-min soak: heap flat, 0 errors.
-  NOT verified on real iPhone/Android hardware — emulation only.
+  Feature-complete and ship-ready. 275 assertions across 8 suites, all green
+  on both the single file and the split build.
+  Seven worlds, each with its own boss and its own music.
+  Installable PWA; offline play is asserted by killing the server mid-session.
+  NOT verified on real iPhone/Android hardware — emulation only. The install
+  flow has never been through a real home-screen install.

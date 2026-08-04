@@ -14,7 +14,9 @@ to play. Canvas 2D, hand-rolled WebAudio, `localStorage` saves.
 | `jumpjuice.html` | **CANONICAL SOURCE.** The whole game. Edit this. |
 | `split/*` | **GENERATED** from `jumpjuice.html` by `test/split.mjs` (except `split/README.md`) |
 | `dist/jumpjuice-artifact.html` | **GENERATED** body-only build for hosting, by `test/build-artifact.mjs` |
+| `dist/pwa/*` | **GENERATED** installable build, by `test/build-pwa.mjs` — this is what you deploy |
 | `test/*.mjs` | Test + build scripts |
+| `PRIVACY.md`, `STORE.md` | Launch collateral: privacy policy and store copy |
 
 Never edit `split/` or `dist/` by hand — the next build overwrites them, and
 until then the builds drift apart.
@@ -37,6 +39,7 @@ npx http-server . -p 8080        # then visit http://localhost:8080/
 ```bash
 node test/split.mjs              # jumpjuice.html -> split/
 node test/build-artifact.mjs     # jumpjuice.html -> dist/jumpjuice-artifact.html
+node test/build-pwa.mjs          # jumpjuice.html -> dist/pwa/  (installable)
 ```
 
 Always re-run `test/split.mjs` after editing `jumpjuice.html`, or the split
@@ -46,15 +49,36 @@ build ships stale code.
 
 ```bash
 node test/smoke.mjs --device=iphone   # 60 assertions x 5 device profiles
-node test/features.mjs                # 36 assertions: heroes, bosses, Lab, awards
+node test/features.mjs                # 48 assertions: heroes, bosses, music, Lab, awards
 node test/hostile.mjs                 # 19 crippled-browser cases — boot can't hang
-node test/balance.mjs                 # 82 assertions: the balance/systems contract
+node test/balance.mjs                 # 83 assertions: the balance/systems contract
+node test/pwa.mjs                     # 25 assertions: manifest, SW, icons, real offline play
 node test/genvalidate.mjs             # 10k + 10k procedural fairness sweep
 node test/economy.mjs                 # coins/min + time-to-unlock simulation
 node test/soak.mjs --min=30           # long-run memory/stability soak
 ```
 
 Every script accepts `--file=split/index.html` to run against the split build.
+`test/pwa.mjs` is the exception: it serves `dist/pwa/` over real HTTP, because
+service workers, manifests and installation are all inert on `file://`. Run
+`node test/build-pwa.mjs` first.
+
+## How to deploy
+
+```bash
+node test/build-pwa.mjs          # -> dist/pwa/
+# then upload dist/pwa/ to any static host over HTTPS
+```
+
+HTTPS is required — service workers refuse to register over plain HTTP on any
+origin except `localhost`, so without it the game loads but never installs and
+never works offline. GitHub Pages, Netlify drop and Cloudflare Pages all give
+you HTTPS by default and need no configuration.
+
+Once served, the game is installable: Android and desktop Chromium show an
+install prompt (and the in-game **Install** button triggers it), and on iOS
+**Share ▸ Add to Home Screen** gives the same result. Installed, it launches
+fullscreen with no browser chrome and runs with no network at all.
 
 ## Debug mode
 
@@ -142,6 +166,38 @@ and then went flat at 1600m.
 | 5 | 3500m+ | 0.86 → 1.00 | prestige; complexity, not reaction time |
 
 The curve is continuous (no cliff at a boundary), monotonic, and capped at 1.
+
+### Worlds, bosses and music
+
+Seven worlds rotate every 280m. Each owns **its own boss** and **its own music
+theme**, so arriving somewhere new changes what you fight and what you hear,
+not just the palette.
+
+| World | Boss | Projectile | Minion | Key | BPM | Mode |
+|---|---|---|---|---|---|---|
+| FOREST | JUICE MONSTER | blob | slime | A | 124 | minor pentatonic |
+| MOUNTAIN | TERRA REX | rock | spikey | G | 118 | minor pentatonic |
+| ICE | FROST TITAN | shard | crystal | B | 112 | major pentatonic |
+| STORM | STORM DRAKE | bolt | laser | F | 138 | phrygian |
+| VOLCANO | FLAME DJINN | fire | spirit | E | 144 | minor pentatonic |
+| SKY | CLOUD KRAKEN | gust | batbot | C | 126 | major pentatonic |
+| SPACE | CYCLOPS EYE | beam | eye | D | 108 | whole tone |
+| *(any, during a fight)* | — | — | — | C | 152 | chromatic |
+
+The **first boss of a run is always the Juice Monster** — it is what the
+tutorial and the game's identity point at. After that you meet the boss that
+belongs to the world you are standing in. Bosses previously rotated on a
+4-cycle against a 7-world cycle, so the Flame Djinn could turn up in the ice.
+
+All eight music themes are the same four-part texture (bass · kick · mid ·
+lead) re-voiced, which keeps a world transition a key change rather than a
+different song starting mid-stride. The boss theme overrides the world's
+wherever the fight happens, and Juice Mode lifts the tempo ×1.17 on top of
+whichever theme is playing.
+
+Adding a boss means adding one row to `BOSSES` (with its `world`, `eyes` and
+`glow`) and one painter in `bossBody()`. The renderer reads the roster; it no
+longer carries `boss.k === "flame"` special cases.
 
 ### Daily modifiers
 
@@ -268,10 +324,34 @@ validated defaults. Progression is never touched by settings migration.
 * Portrait has genuinely less forward visibility than landscape. It is
   playable and supported, but landscape remains the better experience.
 
+## Installing (PWA)
+
+`node test/build-pwa.mjs` produces `dist/pwa/`, a complete installable build:
+
+| Piece | What it does |
+|---|---|
+| `manifest.webmanifest` | name, icons, standalone display, theme colours, install screenshots |
+| `sw.js` | cache-first service worker — the game runs with no network |
+| `icons/` | 13 sizes + 2 maskable + `apple-touch-icon`, drawn from the game's palette |
+| `splash/` | 18 iOS launch images (iOS ignores the manifest and flashes white without them) |
+
+Icons are **rendered at build time**, not stored, so they cannot drift from
+the game's own colours and the repo carries no binary nobody can regenerate.
+
+The service worker caches each asset individually rather than via
+`cache.addAll()`, which rejects the whole install if any single request 404s —
+one missing icon would otherwise cost all offline support.
+
+**The single file is unaffected.** Opened from disk it still runs exactly as
+before: the manifest link 404s harmlessly and service-worker registration is
+skipped, because `register()` throws a `SecurityError` on `file://` and that
+would be a top-level throw during boot. Both are asserted in `test/pwa.mjs`,
+not assumed.
+
 ## Remaining store-launch tasks
 
-* real-device QA on iOS and Android (see above)
-* app icons, splash screens, store screenshots and copy
-* a privacy policy (the game collects nothing, but stores do ask)
-* decide on a wrapper (PWA install vs Capacitor/Cordova shell)
+* **real-device QA on iOS and Android** — the one genuinely open item, and the
+  only claim in this repo that no test can currently back
 * localisation — all strings are currently inline English
+* if a native store listing is wanted rather than PWA install: a Capacitor or
+  Bubblewrap/TWA shell (the PWA build is the input to both)

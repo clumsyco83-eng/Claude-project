@@ -7,9 +7,10 @@ Paste this into a new chat to pick the project up cold. The playable file is
 
 ## What it is
 
-A **single-file HTML5 endless runner**. 3064 lines, 153 KB, zero runtime
+A **single-file HTML5 endless runner**. 4084 lines, 211 KB, zero runtime
 dependencies, no build step. Open the file and it runs. Canvas 2D, hand-rolled
-WebAudio, `localStorage` saves.
+WebAudio, `localStorage` saves. It also builds into an installable,
+offline-capable PWA (`node test/build-pwa.mjs` -> `dist/pwa/`).
 
 It is **not** a level-based platformer — one continuous procedurally generated
 run across 7 rotating biomes, scored in metres, ending when hearts run out.
@@ -54,9 +55,11 @@ node test/soak.mjs --min=30
 node test/split.mjs                     # → split/
 node test/build-artifact.mjs            # → dist/jumpjuice-artifact.html
 ```
-All currently pass: **60×5 + 36 + 19 + 82 assertions, 20,000 generated
+All currently pass: **60×5 + 48 + 19 + 83 + 25 assertions, 20,000 generated
 sequences, zero JS errors** — against both the single file and `split/`.
-Every script takes `--file=split/index.html`.
+Every script takes `--file=split/index.html`, except `test/pwa.mjs`, which
+serves `dist/pwa/` over real HTTP because service workers and manifests are
+inert on `file://`.
 
 Playwright is at `/opt/node22/lib/node_modules/playwright`, Chromium at
 `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
@@ -94,9 +97,12 @@ final-second cue.
 no longer a damage clone of Slayer), **Nature** (+60% juice). No *paid* hero is
 left without a passive. Active ability is named on the HUD.
 
-**Bosses** — 4 kinds, own silhouette/palette/projectile/minion each, rotating by
-zone; the first of a run is always the Juice Monster.
-`JUICE MONSTER` · `FLAME DJINN` · `TERRA REX` · `CYCLOPS EYE`
+**Bosses** — 7 kinds, **one per world**, own silhouette/palette/projectile/minion
+each; the first of a run is always the Juice Monster, and after that you fight
+the boss belonging to the world you are in.
+`JUICE MONSTER` (forest) · `TERRA REX` (mountain) · `FROST TITAN` (ice) ·
+`STORM DRAKE` (storm) · `FLAME DJINN` (volcano) · `CLOUD KRAKEN` (sky) ·
+`CYCLOPS EYE` (space)
 Three phases: **1** projectiles → **2** spawns minions → **3** rage.
 Loop: `warn → hover → aim → charge → swoop → stun → hover`. `charge`
 telegraphs the dive with a flashing full-width lane; `stun` parks it in jump
@@ -111,6 +117,20 @@ unlock + fruit drop.
 
 **Juice Journey** — 15 awards including a real 7-day login streak; unlock 5
 Juice Mode glow skins.
+
+**Music** — 8 themes: one per world plus a boss theme that overrides the
+world's wherever the fight happens. Each names its own key, mode, tempo,
+oscillators, bass rhythm and lead level, all as the same four-part texture
+(bass · kick · mid · lead) so a world transition is a key change rather than a
+different song. Juice Mode lifts the tempo ×1.17 on top. The active theme is
+cached in `curMus`; `musicTick()` runs every rendered frame and must not do
+lookups.
+
+**Install** — `node test/build-pwa.mjs` emits `dist/pwa/`: manifest,
+cache-first service worker, 16 icons, 18 iOS launch images. Installed, the
+game launches fullscreen with no browser chrome and runs offline. The single
+file is unaffected — the manifest 404s harmlessly and SW registration is
+skipped on `file://`, where `register()` throws.
 
 **Other** — 10 monster types + elites, 7 biomes with modifiers, 6 rare events,
 daily missions, daily modifier (switchable off in pause), first-run tutorial,
@@ -170,15 +190,18 @@ Currently hosted privately at
 `https://claude.ai/code/artifact/20a33636-5432-4ff7-bda9-a85b7f528d6d`.
 Any static host works — GitHub Pages, Netlify drop, etc.
 
-Branch: `claude/jump-juice-polish-balance-eeikjx` in `clumsyco83-eng/claude-project`.
+Branch: `claude/project-completion-ul0dcd` in `clumsyco83-eng/claude-project`.
 Baseline `ae4c263` is the original file, unmodified, for diffing.
 
 ## Open ideas, not built
 
 - Level-based mode (`Tutorial → Level 1 → … → Victory`) — a redesign, not a fix
 - Deeper Juice Lab: recipe discovery, permanent upgrade levels per juice
-- Two more bosses (one per biome); boss-specific arenas
-- Music that changes per biome rather than only per juice state
+- Boss-specific arenas
+- Localisation (all strings are inline English)
+
+(One boss per biome and per-biome music were on this list and are now built —
+see the completion pass in REPORT.md.)
 
 ---
 

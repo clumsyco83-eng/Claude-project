@@ -159,6 +159,13 @@ ok("no service worker is registered on file://",
      const rs = await navigator.serviceWorker.getRegistrations().catch(() => []);
      return rs.length === 0;
    }));
+/* Nothing can be installed from file://, so the button must not be offered
+   there — including on iOS, which is shown it on sight everywhere else. */
+ok("no install button is offered on file://",
+   await filePage.evaluate(() => {
+     const b = document.getElementById("bInstall");
+     return !b || getComputedStyle(b).display === "none";
+   }));
 
 ok("no JS errors", errs.length === 0, errs.slice(0, 4));
 

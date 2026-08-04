@@ -3878,9 +3878,11 @@ if($("bInstall"))$("bInstall").onclick=async()=>{
   snack(IOS?"Tap Share ▸ Add to Home Screen to install":
             "Use your browser menu ▸ Install app / Add to Home Screen",4600);
 };
-/* iOS gets the button on sight, since the event that would reveal it on
-   other browsers is never coming. Not shown once already installed. */
-if(IOS&&!STANDALONE())showInstallBtn(true);
+/* iOS gets the button on sight, since the event that would reveal it on other
+   browsers is never coming. Gated on being served, though: nothing can be
+   installed from file://, so offering it there would be a button that cannot
+   work. Not shown once already installed. */
+if(IOS&&!STANDALONE()&&location.protocol.startsWith("http"))showInstallBtn(true);
 
 /* Service worker: makes the installed game work with no network at all.
    Registered only over http(s) — calling register() on a file:// page
