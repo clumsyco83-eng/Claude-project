@@ -176,6 +176,23 @@ const SAVE={best:0,coins:0,xp:0,unlocked:[DEF_SEL],sel:DEF_SEL,msDate:"",msProg:
             fruit:{straw:0,mango:0,lemon:0,kiwi:0},brew:"",
             streak:0,lastDay:"",maxCombo:0,opt:{...OPT_DEF}};
 const KEY="jja2";
+/* ══════ RELEASE IDENTITY ═════════════════════════════════════════
+   Single source of truth. The PWA manifest, the Android versionName and
+   the iOS CFBundleShortVersionString are all stamped from VERSION by the
+   build scripts, so a release cannot ship three different numbers.
+   VERSION_CODE is the integer Play requires; it must increase on every
+   upload and never repeat, so bump it even for a re-upload of the same
+   VERSION.
+
+   SUPPORT_EMAIL and PRIVACY_URL are PLACEHOLDERS. Both stores reject a
+   listing whose support contact or privacy policy does not resolve, so
+   these must be replaced with real, live values before submission —
+   test/release-check.mjs fails the build while they are still set to the
+   example values below. */
+const VERSION="1.0.0";
+const VERSION_CODE=1;
+const SUPPORT_EMAIL="support@example.com";        /* PLACEHOLDER — replace */
+const PRIVACY_URL="https://example.com/privacy";  /* PLACEHOLDER — replace */
 const LVXP=lv=>250+lv*180;
 function level(){let lv=1,x=Math.max(0,SAVE.xp|0),n=0;
   while(x>=LVXP(lv)&&n++<400){x-=LVXP(lv);lv++;}
@@ -3438,6 +3455,21 @@ $("bFull").onclick=async()=>{
 $("oVol").oninput=()=>{syncOpts();setVol(OPT.vol);};
 $("oVol").onchange=()=>{sfx("click");};
 
+/* ══════ ABOUT: version, privacy, support ═════════════════════════
+   Both stores require the privacy policy and a support contact to be
+   reachable from inside the app, not only from the listing. The version
+   is shown alongside them because it is the first thing a support mail
+   needs and the last thing a player can find. */
+{
+  const v=$("verTxt"),p=$("lnkPrivacy"),s=$("lnkSupport");
+  if(v)v.textContent="v"+VERSION;
+  if(p)p.href=PRIVACY_URL;
+  /* Prefilled subject and version: a support mail that does not say which
+     build it came from costs a round trip every time. */
+  if(s)s.href="mailto:"+SUPPORT_EMAIL+
+      "?subject="+encodeURIComponent("Jump Juice Adventure v"+VERSION+" — support");
+}
+
 /* ══════ INSTALL ══════════════════════════════════════════════════
    Installing is the real fix for the iOS problem: Quick Look never runs
    scripts and iOS Safari cannot open a local file:// page at all, so on
@@ -3525,6 +3557,12 @@ if(/[?&]debug=1\b/.test(location.search)){
       px:P.x,py:P.y,pvx:P.vx,pvy:P.vy,grd:P.grd,dashCd:P.dashCd,
       boss:boss?{k:boss.k,st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
                  life:boss.life,hits:boss.hits,gift:boss.gift,drop:boss.drop,spawned:boss.spawned}:null,
+      /* held input — the on-screen pad's entire observable effect, so a
+         test can tell a working pad button from a dead one. Each pad
+         button drives a different one of these. */
+      steerRaw:steer,jumpHeld,dashArm:dashChg,padL,padR,dashT:P.dash,
+      version:VERSION,versionCode:VERSION_CODE,
+      supportEmail:SUPPORT_EMAIL,privacyUrl:PRIVACY_URL,
       BREW,runFruit,bosses:Object.keys(BOSSES),bossWorlds:BOSS_OF_WORLD,
       music:{bpm:curMus.bpm,root:curMus.root,boss:curMus===MUSIC_BOSS,
              worlds:Object.keys(MUSIC),
@@ -3642,6 +3680,11 @@ if(/[?&]debug=1\b/.test(location.search)){
        can travel the worlds without one spawning on the way (the first boss
        is due at 350m, which is inside the second world). */
     holdBoss(){boss=null;nextBoss=1e9;},
+    /* UI navigation, so a test can reach a control on any screen without
+       simulating the click path that leads there (which is what it is
+       trying to test in the first place). */
+    show(id){show(id);return true;},
+    pause(on){if(!!on!==paused)togglePause();return paused;},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
     voidPlayer(){P.y=WH+200;},
     reachableBoss(){                     /* is the weak point inside jump range? */

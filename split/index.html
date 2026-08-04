@@ -95,6 +95,15 @@
       <button class="btn p" id="bResume">Resume</button>
       <button class="btn" id="bQuit">End run</button>
     </div>
+    <!-- Store requirement: a privacy policy and a support contact must be
+         reachable from inside the app, not only from the store listing.
+         Both open in a new tab; rel=noopener so the opened page cannot
+         reach back into the game via window.opener. -->
+    <p class="lil" id="aboutRow" style="opacity:.75;margin-top:6px">
+      <span id="verTxt"></span> &middot;
+      <a id="lnkPrivacy" href="#" target="_blank" rel="noopener noreferrer">Privacy</a> &middot;
+      <a id="lnkSupport" href="#" target="_blank" rel="noopener noreferrer">Support</a>
+    </p>
   </div>
 
   <!-- Scheme B: optional on-screen controls. Hidden unless chosen in pause.
