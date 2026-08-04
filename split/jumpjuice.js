@@ -364,23 +364,61 @@ document.addEventListener("visibilitychange",()=>{
 addEventListener("blur",()=>{steer=0;prime=null;jumpHeld=false;kbd.l=kbd.r=false;});
 addEventListener("focus",()=>{resumeAudio();});
 
+/* ══════ MUSIC THEMES ═════════════════════════════════════════════
+   One theme per world plus a boss theme, so the score follows where you
+   are instead of only whether you are juiced. Every theme is the same
+   four-part texture (bass · kick · mid · lead) re-voiced, which is what
+   keeps the transition between two worlds a key change rather than a
+   different song starting mid-stride.
+
+     root  bass frequency — the key
+     sc    scale degrees in semitones — the mode, and the reason ICE and
+           SKY sound open (major pentatonic) while VOLCANO and STORM sound
+           tense (minor with a flat second)
+     bpm   tempo
+     mid   / lead   oscillator per voice
+     bass  the steps of a 16-step bar the bass plays — the groove
+     lv    lead level, trimmed per theme so a bright waveform in a high
+           register does not sit louder than the rest                    */
+const SC=[0,3,5,7,10,12];                     /* minor pentatonic, the default */
+const SC_MAJ=[0,2,4,7,9,12], SC_PHR=[0,1,5,7,8,12], SC_WHOLE=[0,2,4,6,8,10];
+const MUSIC={
+ FOREST:  {root:110.00,sc:SC,     bpm:124,mid:"square",  lead:"triangle",bass:[0,6,10],   lv:.050},
+ MOUNTAIN:{root:98.00, sc:SC,     bpm:118,mid:"sawtooth",lead:"triangle",bass:[0,4,10],   lv:.040},
+ ICE:     {root:123.47,sc:SC_MAJ, bpm:112,mid:"triangle",lead:"sine",    bass:[0,8],      lv:.055},
+ STORM:   {root:87.31, sc:SC_PHR, bpm:138,mid:"sawtooth",lead:"square",  bass:[0,3,6,10], lv:.036},
+ VOLCANO: {root:82.41, sc:SC,     bpm:144,mid:"square",  lead:"square",  bass:[0,2,6,8,12],lv:.034},
+ SKY:     {root:130.81,sc:SC_MAJ, bpm:126,mid:"triangle",lead:"sine",    bass:[0,6,10],   lv:.055},
+ SPACE:   {root:73.42, sc:SC_WHOLE,bpm:108,mid:"sine",   lead:"sine",    bass:[0,8],      lv:.050}};
+/* The boss theme overrides the world's — a fight should sound like a fight
+   wherever it happens. Fast, low and chromatic. */
+const MUSIC_BOSS={root:65.41,sc:[0,1,6,7,8,11],bpm:152,mid:"sawtooth",lead:"square",
+                  bass:[0,2,4,6,8,10,12,14],lv:.042};
+let curMus=MUSIC.FOREST;
+/* Called on world change, boss spawn and boss end. Cached rather than looked
+   up inside musicTick, which runs every rendered frame. */
+function setTheme(t){curMus=t||MUSIC.FOREST;}
+function themeNow(){return boss&&boss.st!=="dead"?MUSIC_BOSS:(MUSIC[worldAt(dist).n]||MUSIC.FOREST);}
+
 /* ── music: bounded scheduler, driven from the render loop ──
    Called once per rendered frame instead of setInterval, and it
    re-anchors if it has fallen behind, so a suspended tab can never
    trigger a thousand-note catch-up burst. */
-const SC=[0,3,5,7,10,12];
 function musicTick(){
   if(!sndOk()||!musicOn)return;
   const now=AC.currentTime;
   if(mnext<now-.25)mnext=now+.05;                     // fell behind: re-anchor
-  const spb=60/(juice>0?150:128)/4;
+  const M=curMus,S=M.sc;
+  /* Juice Mode still lifts the tempo, now relative to the world's own
+     rather than to one hard-coded 128. */
+  const spb=60/(M.bpm*(juice>0?1.17:1))/4;
   let guard=0;
   while(mnext<now+.14&&guard++<16){
     const s=mstep%16;
-    if(s===0||s===6||s===10)tn(mg[0],110,mnext,.5,"triangle",.24);
+    if(M.bass.indexOf(s)>=0)tn(mg[0],M.root,mnext,.5,"triangle",.24);
     if(s%4===0)kick(mnext);
-    if(s%2===0)tn(mg[2],220*Math.pow(2,SC[(mstep*3)%SC.length]/12),mnext,.15,"square",.085);
-    if(s%2===1)tn(mg[3],880*Math.pow(2,SC[(mstep*5)%SC.length]/12),mnext,.09,"triangle",.05);
+    if(s%2===0)tn(mg[2],M.root*2*Math.pow(2,S[(mstep*3)%S.length]/12),mnext,.15,M.mid,.085);
+    if(s%2===1)tn(mg[3],M.root*8*Math.pow(2,S[(mstep*5)%S.length]/12),mnext,.09,M.lead,M.lv);
     mnext+=spb;mstep++;
   }
 }
@@ -1527,6 +1565,9 @@ function start(){
   shake=0;hstop=0;flash=0;ST="play";paused=false;steer=0;prime=null;
   show(null);updateRot();
   $("pauseBtn").classList.add("show");syncSchemeUI();
+  /* Reset the score with the run — without this a restart during a boss
+     fight kept the boss theme playing over the opening forest. */
+  setTheme(themeNow());
   initAudio();layers(1);
 }
 /* One collision costs exactly one heart. iFr is set BEFORE anything else so
@@ -1657,6 +1698,7 @@ function step(){
   const wl=worldAt(dist),d=diff();
   const wi=Math.floor(dist/ZONE)%WORLDS.length;
   if(wi!==worldI){worldI=wi;layers(Math.min(1+Math.floor(dist/500),3));
+    setTheme(themeNow());                    /* the score follows the world */
     pop(P.x+P.w/2,P.y-34,wl.n,"#FFE9A0",15);}
 
   /* ── Juice Mode timer ──
@@ -1941,8 +1983,12 @@ function step(){
     if(frame%3===0)spark(sh.x,sh.y,0,0,2.4,true,.7);
     if(P.x+P.w>sh.x-6&&P.x<sh.x+6&&P.y+P.h>sh.y-6&&P.y<sh.y+6){
       sh.life=0;burst(8,sh.x,sh.y,4,2,true);
-      const fireSafe=(has("fireproof")||has("firelord"))&&sh.k==="fire";
-      if(!fireSafe&&juice<=0&&P.dash<=0){ if(hurt("BURNED"))return; }
+      /* Fire immunity has to key off what the projectile IS (`bk`), not off
+         its physics class. Every straight-flying boss shot shares k==="fire",
+         so keying on k made Inferno immune to ice shards and lightning. */
+      const isFire=sh.bk?sh.bk==="fire":sh.k==="fire";
+      const fireSafe=(has("fireproof")||has("firelord"))&&isFire;
+      if(!fireSafe&&juice<=0&&P.dash<=0){ if(hurt(SHOT_HURT[sh.bk]||"BURNED"))return; }
     }}
   compact(shots,sh=>sh.life>0&&sh.x>camX-100&&sh.y<WH+140);
 
@@ -2046,24 +2092,50 @@ function clearRings(){for(let i=0;i<RMAX;i++)RINGS[i].life=0;}
    height, so dodging is a read, not a guess.                          */
 
 /* ══════ BOSS ROSTER ═════════════════════════════════════════════
-   Four bosses, each with its own silhouette, palette, projectile and
-   minion, rotating by world so a run does not repeat the same fight.
-   Every one runs the same readable 3-phase structure:
+   Seven bosses — one per world, so the fight always belongs to the place
+   it happens in. Each has its own silhouette, palette, projectile and
+   minion. Every one runs the same readable 3-phase structure:
      phase 1  throw obstacles
      phase 2  spawn minions between attacks
      phase 3  rage — faster, relentless
    and the same dodge→punish loop: telegraphed dive, then a stunned
-   window where the glowing core can be stomped.                      */
+   window where the glowing core can be stomped.
+
+   `world` binds the boss to its biome, `eyes` drives the weak-point face
+   and `glow` picks the aura sprite. Those three were hard-coded `boss.k===`
+   comparisons scattered through the renderer, which is why adding a boss
+   used to mean editing four unrelated places. They are data now.        */
 const BOSSES={
   juice:{ name:"JUICE MONSTER", tag:"IT DRINKS THE METER DRY",
-          col:"#7FD46A", col2:"#FF7FB0", shot:"blob", minion:"slime" },
-  flame:{ name:"FLAME DJINN",   tag:"BORN IN THE VOLCANO",
-          col:"#FF9A3B", col2:"#FFE08A", shot:"fire",  minion:"spirit" },
+          col:"#7FD46A", col2:"#FF7FB0", shot:"blob",  minion:"slime",
+          world:"FOREST",   eyes:1, glow:"red" },
   rex:{   name:"TERRA REX",     tag:"IT SHAKES THE GROUND",
-          col:"#E2603F", col2:"#FFD9C2", shot:"rock",  minion:"spikey" },
+          col:"#E2603F", col2:"#FFD9C2", shot:"rock",  minion:"spikey",
+          world:"MOUNTAIN", eyes:2, glow:"red" },
+  frost:{ name:"FROST TITAN",   tag:"IT BREATHES THE BLIZZARD",
+          col:"#8FD8E8", col2:"#FFFFFF", shot:"shard", minion:"crystal",
+          world:"ICE",      eyes:2, glow:"cry" },
+  storm:{ name:"STORM DRAKE",   tag:"IT RIDES THE THUNDER",
+          col:"#6E7EA8", col2:"#FFE96B", shot:"bolt",  minion:"laser",
+          world:"STORM",    eyes:2, glow:"wht" },
+  flame:{ name:"FLAME DJINN",   tag:"BORN IN THE VOLCANO",
+          col:"#FF9A3B", col2:"#FFE08A", shot:"fire",  minion:"spirit",
+          world:"VOLCANO",  eyes:2, glow:"hot" },
+  kraken:{name:"CLOUD KRAKEN",  tag:"IT NESTS ABOVE THE CLOUDS",
+          col:"#C6DCE8", col2:"#5FE8FF", shot:"gust",  minion:"batbot",
+          world:"SKY",      eyes:1, glow:"wht" },
   eye:{   name:"CYCLOPS EYE",   tag:"IT SEES EVERY STEP",
-          col:"#C77BE0", col2:"#5FE8FF", shot:"beam",  minion:"eye" }};
-const BOSS_ORDER=["juice","flame","rex","eye"];
+          col:"#C77BE0", col2:"#5FE8FF", shot:"beam",  minion:"eye",
+          world:"SPACE",    eyes:1, glow:"red" }};
+const BOSS_ORDER=Object.keys(BOSSES);
+/* Death text per projectile — "BURNED" for a snowball read as a bug. */
+const SHOT_HURT={fire:"BURNED",rock:"CRUSHED",blob:"DISSOLVED",beam:"VAPORISED",
+                 shard:"FROZEN",bolt:"ZAPPED",gust:"BLOWN AWAY"};
+/* world name -> boss kind, built from the roster rather than duplicated,
+   so a roster edit can never leave a world pointing at a boss that is gone */
+const BOSS_OF_WORLD={};
+BOSS_ORDER.forEach(k=>{BOSS_OF_WORLD[BOSSES[k].world]=k;});
+const GLOW_OF={red:()=>GLOW_RED,hot:()=>GLOW_HOT,cry:()=>GLOW_CRY,wht:()=>GLOW_WHT};
 /* Repeat encounters add pattern variation (phase thresholds, volley spread
    and minion cadence already scale) rather than only stacking HP, so a
    later boss is not just a longer version of the first. HP growth is capped
@@ -2078,13 +2150,21 @@ const BOSS_MAX_F=3900;          /* ~65s hard ceiling on one encounter */
 const stunLen=b=>b.phase>=3?95:b.phase>=2?110:155;
 function bossSpawn(){
   evt=null;nextEvt=dist+240;
-  /* first boss of a run is always the Juice Monster (it is the one the
-     tutorial and the game's identity point at); after that they rotate */
-  const k=bossWins===0?"juice":BOSS_ORDER[(Math.floor(dist/ZONE)+bossWins)%BOSS_ORDER.length];
+  /* First boss of a run is always the Juice Monster (it is the one the
+     tutorial and the game's identity point at). After that the fight is
+     the one that belongs to the world you are standing in — bosses used to
+     rotate on a 4-cycle against a 7-world cycle, so the Flame Djinn could
+     turn up in the ice and the pairing read as random. If a world somehow
+     has no boss the rotation is the fallback, so this can never spawn
+     nothing. */
+  const k=bossWins===0?"juice"
+        :(BOSS_OF_WORLD[worldAt(dist).n]
+          ||BOSS_ORDER[(Math.floor(dist/ZONE)+bossWins)%BOSS_ORDER.length]);
   boss={k,x:camX+W+150,y:110,vy:0,hp:BOSS_HP(bossWins),max:BOSS_HP(bossWins),
         st:"warn",t:0,life:0,hurt:0,cool:80,phase:1,ty:P.y,volley:0,
         gift:null,drop:null,hits:0,spawned:0};
   sfx("siren");buzz([0,70,60,70]);bossSeen++;
+  setTheme(MUSIC_BOSS);                      /* a fight sounds like a fight */
   if(!calm())shake=6;
 }
 function bossHitBox(){return{w:64,h:44};}
@@ -2115,6 +2195,8 @@ function bossDamage(mult){
 }
 function bossDie(){
   boss.hp=0;boss.st="dead";boss.t=0;
+  setTheme(themeNow());                      /* the world's music comes back
+                                                under the victory fanfare */
   /* Was 600+250n, which made bosses 45-69% of a run's entire income and
      turned boss-farming into the only rational strategy. Now a strong bonus
      (~25%) on top of collecting, not a replacement for it. */
@@ -2146,12 +2228,12 @@ function bossStep(){
       ring(boss.x,boss.y,"#FFB870",6);if(!calm())shake=10;}
     if(boss.t===64){sfx("victory");flash=.8;}
     boss.y+=1.6;boss.x-=1.1;
-    if(boss.t>170){boss=null;nextBoss=dist+550;}
+    if(boss.t>170){boss=null;nextBoss=dist+550;setTheme(themeNow());}
     return;
   }
   if(boss.st==="retreat"){
     boss.y-=4.2;boss.x+=2.4;
-    if(boss.t>110){boss=null;nextBoss=dist+550;}
+    if(boss.t>110){boss=null;nextBoss=dist+550;setTheme(themeNow());}
     return;
   }
   /* hard despawn guard that actually works: `life` is never reset by a
@@ -2208,6 +2290,9 @@ function bossStep(){
         const spread=p3?[-.34,-.11,.11,.34]:p2?[-.22,0,.22]:[0];
         spread.forEach(a=>{
           const cs=Math.cos(a),sn=Math.sin(a);
+          /* `k` is the physics class (a meteor arcs, everything else flies
+             straight); `bk` is the look. Splitting them lets a new boss get
+             its own projectile art without inventing new physics. */
           shots.push({x:boss.x,y:boss.y+20,vx:(ux*cs-uy*sn)*sp,vy:(ux*sn+uy*cs)*sp,
                       k:BD.shot==="rock"?"meteor":"fire",bk:BD.shot,life:220});});
         sfx("dash");boss.volley++;boss.st="hover";boss.t=0;boss.cool=p3?34:p2?52:78;
@@ -2261,7 +2346,9 @@ function bossStep(){
       else if(boss)P.vx=-P.face*4;
       if(boss)P.jumpsUsed=Math.max(0,P.jumpsUsed-1);
     } else if(boss.hurt<=0&&(boss.st==="swoop"||boss.st==="charge")){
-      if(hurt("THE SKY TYRANT GOT YOU"))return;
+      /* named the boss you actually fought — "THE SKY TYRANT" was the
+         pre-roster placeholder and named none of the seven */
+      if(hurt(BD.name+" GOT YOU"))return;
     }
   }
 }
@@ -2506,14 +2593,58 @@ function draw(){
     ctx.globalAlpha=1;}
 
   /* ── projectiles ── */
+  /* Every boss projectile used to draw as the same orange ball, so the ice
+     boss threw fire. `bk` carries the boss's own ammunition; the fallback is
+     the original fireball, so an unknown kind still renders something. */
   for(const sh of shots){
     const x=sh.x-camX;if(x<-60||x>W+60)continue;
-    if(!lite)glow(sh.k==="meteor"?GLOW_HOT:GLOW_HOT,x,sh.y,sh.k==="meteor"?1.1:.8);
+    const bk=sh.bk||"";
+    if(!lite)glow(bk==="shard"?GLOW_CRY:bk==="bolt"||bk==="gust"?GLOW_WHT:
+                  bk==="blob"?GLOW_GRN:bk==="beam"?GLOW_RED:GLOW_HOT,
+                  x,sh.y,sh.k==="meteor"?1.1:.8);
     if(sh.k==="meteor"){
       ctx.strokeStyle="rgba(255,180,110,.55)";ctx.lineWidth=4;
       ctx.beginPath();ctx.moveTo(x,sh.y);ctx.lineTo(x-sh.vx*5,sh.y-sh.vy*5);ctx.stroke();
       ctx.fillStyle="#FFB870";ctx.beginPath();ctx.arc(x,sh.y,8,0,7);ctx.fill();
       ctx.fillStyle="#FFE9C0";ctx.beginPath();ctx.arc(x,sh.y,4,0,7);ctx.fill();
+    } else if(bk==="shard"){
+      /* ice splinter, pointing the way it travels */
+      const a=Math.atan2(sh.vy,sh.vx);
+      ctx.save();ctx.translate(x,sh.y);ctx.rotate(a);
+      ctx.fillStyle="#CFF2FA";ctx.beginPath();
+      ctx.moveTo(9,0);ctx.lineTo(-5,4.6);ctx.lineTo(-3,0);ctx.lineTo(-5,-4.6);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#FFFFFF";ctx.beginPath();
+      ctx.moveTo(5,0);ctx.lineTo(-2,2);ctx.lineTo(-2,-2);ctx.closePath();ctx.fill();
+      ctx.restore();
+    } else if(bk==="bolt"){
+      /* forked lightning: a jagged bolt that flickers between two shapes */
+      const a=Math.atan2(sh.vy,sh.vx),z=(frame>>1)%2?1:-1;
+      ctx.save();ctx.translate(x,sh.y);ctx.rotate(a);
+      ctx.strokeStyle="#FFE96B";ctx.lineWidth=3;ctx.lineJoin="miter";
+      ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-2,3.4*z);ctx.lineTo(1,-3.4*z);ctx.lineTo(9,0);ctx.stroke();
+      ctx.strokeStyle="#FFFFFF";ctx.lineWidth=1.2;ctx.stroke();
+      ctx.restore();
+    } else if(bk==="gust"){
+      /* wind curl: two arcs chasing each other */
+      ctx.strokeStyle="rgba(198,220,232,.95)";ctx.lineWidth=2.6;ctx.lineCap="round";
+      ctx.beginPath();ctx.arc(x,sh.y,6.5,frame/5,frame/5+2.5);ctx.stroke();
+      ctx.strokeStyle="rgba(95,232,255,.9)";ctx.lineWidth=1.8;
+      ctx.beginPath();ctx.arc(x,sh.y,3.4,frame/5+3.1,frame/5+5.6);ctx.stroke();
+      ctx.lineCap="butt";
+    } else if(bk==="blob"){
+      /* juice glob, squashed along its flight path */
+      const a=Math.atan2(sh.vy,sh.vx);
+      ctx.save();ctx.translate(x,sh.y);ctx.rotate(a);
+      ctx.fillStyle="#7FD46A";ctx.beginPath();ctx.ellipse(0,0,8,5.4,0,0,7);ctx.fill();
+      ctx.fillStyle="#FF7FB0";ctx.beginPath();ctx.ellipse(-1.6,-1,3,2,0,0,7);ctx.fill();
+      ctx.restore();
+    } else if(bk==="beam"){
+      /* eye beam: a bright lance with a violet halo */
+      const a=Math.atan2(sh.vy,sh.vx);
+      ctx.save();ctx.translate(x,sh.y);ctx.rotate(a);
+      ctx.fillStyle="rgba(199,123,224,.55)";ctx.beginPath();ctx.roundRect(-11,-3.4,22,6.8,3.4);ctx.fill();
+      ctx.fillStyle="#5FE8FF";ctx.beginPath();ctx.roundRect(-8,-1.7,16,3.4,1.7);ctx.fill();
+      ctx.restore();
     } else {
       ctx.fillStyle="#FF7A2F";ctx.beginPath();ctx.arc(x,sh.y,6,0,7);ctx.fill();
       ctx.fillStyle="#FFE0B8";ctx.beginPath();ctx.arc(x,sh.y,2.8,0,7);ctx.fill();}}
@@ -2689,7 +2820,8 @@ function drawBoss(lite){
 
   ctx.save();
   if(boss.hurt>0&&frame%6<3)ctx.globalAlpha*=.45;
-  if(!lite)glow(stunned?GLOW_GRN:(boss.k==="flame"?GLOW_HOT:GLOW_RED),bx,by,stunned?1.15:1.05);
+  if(!lite)glow(stunned?GLOW_GRN:(GLOW_OF[(BOSSES[boss.k]||BOSSES.juice).glow]||GLOW_OF.red)(),
+                bx,by,stunned?1.15:1.05);
 
   const flap=Math.sin(frame/(boss.st==="swoop"?3:stunned?16:9))*16;
   const hit=boss.hurt>20;
@@ -2703,7 +2835,7 @@ function drawBoss(lite){
 
   /* the weak point — the whole point of the redesign is that the player
      can see where and when to hit */
-  const oneEye=boss.k==="eye"||boss.k==="juice";
+  const oneEye=(BD.eyes||2)===1;
   if(stunned){
     const pu=.7+.3*Math.sin(frame/4);
     /* an expanding outer ring on top of the pulsing core: readable even on a
@@ -2717,7 +2849,10 @@ function drawBoss(lite){
     if(oneEye)EYE(ctx,bx,by-6,5,.22,0);
     else{EYE(ctx,bx-9,by-5,4,.25,0);EYE(ctx,bx+9,by-5,4,.25,0);}
   } else if(oneEye){
-    EYE(ctx,bx,boss.k==="eye"?by:by-8,boss.k==="eye"?13:8,1,-2.2);
+    /* the Cyclops IS the eye, so its pupil fills the body; the other
+       single-eyed bosses wear theirs high on the face */
+    const big=boss.k==="eye";
+    EYE(ctx,bx,big?by:by-8,big?13:8,1,-2.2);
   } else {
     EYE(ctx,bx-9,by-5,5,1,-1.6);EYE(ctx,bx+9,by-5,5,1,-1.6);
   }
@@ -2785,6 +2920,76 @@ function bossBody(k,bx,by,body,trim,flap,stunned){
     ctx.fillStyle=trim;
     ctx.beginPath();ctx.moveTo(bx-32,by-10);ctx.lineTo(bx-46,by-24);ctx.lineTo(bx-28,by-2);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(bx+32,by-10);ctx.lineTo(bx+46,by-24);ctx.lineTo(bx+28,by-2);ctx.closePath();ctx.fill();
+  } else if(k==="frost"){
+    /* frost titan: a slab of ice with a jagged crown and a frozen core.
+       Angular on purpose — it has to read as the opposite of the flame
+       djinn's licking curves at thumbnail size. */
+    ctx.beginPath();
+    ctx.moveTo(bx,by-38);
+    ctx.lineTo(bx+26,by-14);ctx.lineTo(bx+32,by+16);
+    ctx.lineTo(bx,by+28);ctx.lineTo(bx-32,by+16);ctx.lineTo(bx-26,by-14);
+    ctx.closePath();ctx.fill();OUT(ctx,2.4);
+    ctx.fillStyle=trim;                      /* shoulder spikes */
+    for(let i=0;i<5;i++){const sx=bx-26+i*13,sh=10+((i*7)%9)+Math.sin(frame/22+i)*2;
+      ctx.beginPath();ctx.moveTo(sx-5,by-16);ctx.lineTo(sx,by-16-sh);ctx.lineTo(sx+5,by-16);
+      ctx.closePath();ctx.fill();}
+    ctx.fillStyle="rgba(255,255,255,.5)";    /* internal facet */
+    ctx.beginPath();ctx.moveTo(bx-9,by-8);ctx.lineTo(bx+5,by-2);ctx.lineTo(bx-4,by+16);
+    ctx.closePath();ctx.fill();
+  } else if(k==="storm"){
+    /* storm drake: swept-back wings, long neck, snout forward into the
+       player's lane. The wings are the body colour with a charged edge —
+       filling them with the yellow trim made it read as a bird, because
+       two bright shapes either side of a small head are ears. */
+    const wb=Math.sin(frame/7)*6+flap*.35;
+    ctx.save();ctx.globalAlpha*=.85;
+    ctx.beginPath();                          /* far wing */
+    ctx.moveTo(bx+6,by-6);
+    ctx.quadraticCurveTo(bx+34,by-30-wb,bx+56,by-6-wb*.5);
+    ctx.quadraticCurveTo(bx+30,by+2,bx+6,by+8);ctx.closePath();ctx.fill();
+    ctx.restore();
+    ctx.beginPath();                          /* near wing */
+    ctx.moveTo(bx+2,by-6);
+    ctx.quadraticCurveTo(bx+26,by-34-wb,bx+44,by-14-wb*.5);
+    ctx.quadraticCurveTo(bx+24,by-2,bx+2,by+8);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=trim;ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=body;                       /* body + neck + snout, one path */
+    ctx.beginPath();
+    ctx.moveTo(bx+24,by+2);
+    ctx.quadraticCurveTo(bx+10,by-20,bx-14,by-16);
+    ctx.quadraticCurveTo(bx-34,by-13,bx-46,by-1);   /* snout tip, facing left */
+    ctx.lineTo(bx-40,by+9);
+    ctx.quadraticCurveTo(bx-20,by+6,bx-6,by+14);
+    ctx.quadraticCurveTo(bx+12,by+20,bx+24,by+2);
+    ctx.closePath();ctx.fill();OUT(ctx,2.4);
+    ctx.fillStyle=trim;                       /* horn */
+    ctx.beginPath();ctx.moveTo(bx-12,by-16);ctx.lineTo(bx-4,by-32);ctx.lineTo(bx+2,by-14);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle=trim;ctx.lineWidth=2.2;ctx.lineJoin="miter";
+    const z=(frame>>2)%2?1:-1;                /* charge crackling along the neck */
+    ctx.beginPath();ctx.moveTo(bx-30,by+2);ctx.lineTo(bx-20,by-4+3*z);
+    ctx.lineTo(bx-10,by+2-3*z);ctx.lineTo(bx,by-4);ctx.stroke();
+  } else if(k==="kraken"){
+    /* cloud kraken: one continuous mantle over drifting tentacles.
+       Traced as a single closed path — four overlapping circles filled in
+       one go still get outlined individually by OUT(), which drew the
+       internal seams and made it read as a ring of bubbles. */
+    ctx.beginPath();
+    ctx.moveTo(bx-34,by+6);
+    ctx.quadraticCurveTo(bx-38,by-12,bx-20,by-16);
+    ctx.quadraticCurveTo(bx-16,by-34,bx+2,by-30);
+    ctx.quadraticCurveTo(bx+20,by-32,bx+22,by-14);
+    ctx.quadraticCurveTo(bx+40,by-14,bx+34,by+6);
+    ctx.quadraticCurveTo(bx,by+18,bx-34,by+6);
+    ctx.closePath();ctx.fill();OUT(ctx,2.2);
+    ctx.fillStyle=trim;
+    for(let i=0;i<5;i++){                    /* tentacles, each on its own phase */
+      const a=frame/17+i*1.15,tx=bx-22+i*11,ty=by+8;
+      ctx.beginPath();
+      ctx.moveTo(tx-4,ty);
+      ctx.quadraticCurveTo(tx-4+Math.sin(a)*11,ty+14,tx+Math.sin(a+1)*9,ty+26);
+      ctx.quadraticCurveTo(tx+4+Math.sin(a)*11,ty+14,tx+4,ty);
+      ctx.closePath();ctx.fill();}
   } else {
     /* cyclops eye: floating orb ringed by lashes */
     ctx.beginPath();ctx.arc(bx,by,28,0,7);ctx.fill();OUT(ctx,2.4);
@@ -3233,6 +3438,62 @@ $("bFull").onclick=async()=>{
 $("oVol").oninput=()=>{syncOpts();setVol(OPT.vol);};
 $("oVol").onchange=()=>{sfx("click");};
 
+/* ══════ INSTALL ══════════════════════════════════════════════════
+   Installing is the real fix for the iOS problem: Quick Look never runs
+   scripts and iOS Safari cannot open a local file:// page at all, so on
+   iPhone the game has to come from a URL — and once it does, adding it to
+   the Home Screen gives it the fullscreen, offline, no-browser-chrome
+   launch the game was always designed for.
+
+   Two paths, because they genuinely differ:
+     Chromium/Android  fires `beforeinstallprompt`; we stash it and let the
+                       Install button trigger the real prompt.
+     iOS               never fires it and has no programmatic install, so
+                       the button explains the Share ▸ Add to Home Screen
+                       route instead of pretending to be a one-tap install.
+   Every branch is guarded: none of this may throw on a browser that has no
+   service worker, no manifest, or is running from file://. */
+let deferredInstall=null;
+const STANDALONE=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+function showInstallBtn(on){const b=$("bInstall");if(b)b.style.display=on?"":"none";}
+addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();                      /* keep the mini-infobar off the game */
+  deferredInstall=e;
+  if(!STANDALONE())showInstallBtn(true);
+});
+addEventListener("appinstalled",()=>{
+  deferredInstall=null;showInstallBtn(false);
+  snack("Installed — launch it from your home screen",3600);
+});
+if($("bInstall"))$("bInstall").onclick=async()=>{
+  sfx("click");
+  if(deferredInstall){
+    try{
+      deferredInstall.prompt();
+      const r=await deferredInstall.userChoice;
+      if(r&&r.outcome==="accepted")showInstallBtn(false);
+    }catch(e){snack("Install unavailable in this browser",3200);}
+    deferredInstall=null;                  /* a prompt cannot be reused */
+    return;}
+  /* iOS, or a browser that never offered the event */
+  snack(IOS?"Tap Share ▸ Add to Home Screen to install":
+            "Use your browser menu ▸ Install app / Add to Home Screen",4600);
+};
+/* iOS gets the button on sight, since the event that would reveal it on
+   other browsers is never coming. Not shown once already installed. */
+if(IOS&&!STANDALONE())showInstallBtn(true);
+
+/* Service worker: makes the installed game work with no network at all.
+   Registered only over http(s) — calling register() on a file:// page
+   throws a SecurityError, which on this project would be a top-level
+   throw during boot. Failure to register is never fatal: the game runs
+   identically without it, it just will not run offline. */
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
+  addEventListener("load",()=>{
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+
 /* ══════ BOOT ═════════════════════════════════════════════════════ */
 function bootDone(){
   /* A fatal error already told the player the engine is not running.
@@ -3262,7 +3523,12 @@ if(/[?&]debug=1\b/.test(location.search)){
       px:P.x,py:P.y,pvx:P.vx,pvy:P.vy,grd:P.grd,dashCd:P.dashCd,
       boss:boss?{k:boss.k,st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
                  life:boss.life,hits:boss.hits,gift:boss.gift,drop:boss.drop,spawned:boss.spawned}:null,
-      BREW,runFruit,bosses:Object.keys(BOSSES),brews:Object.keys(BREWS),fruits:Object.keys(FRUIT),
+      BREW,runFruit,bosses:Object.keys(BOSSES),bossWorlds:BOSS_OF_WORLD,
+      music:{bpm:curMus.bpm,root:curMus.root,boss:curMus===MUSIC_BOSS,
+             worlds:Object.keys(MUSIC),
+             table:Object.keys(MUSIC).map(w=>[w,MUSIC[w].root,MUSIC[w].bpm]),
+             bossTheme:[MUSIC_BOSS.root,MUSIC_BOSS.bpm]},
+      brews:Object.keys(BREWS),fruits:Object.keys(FRUIT),
       abil:ABIL[activePass]?ABIL[activePass].short:"?",
       safeTop,WY,WH,
       audio:AC?AC.state:"none", tut:{i:tutI,done:SAVE.tut},
@@ -3305,6 +3571,17 @@ if(/[?&]debug=1\b/.test(location.search)){
              fruPer100:+(fru/metres*100).toFixed(3)};},
     extend(){return extendJuice(P.x,P.y);},
     sfx(k){sfx(k);return true;},          /* audio-cue smoke probe */
+    /* Music smoke probe: forces every theme through the real scheduler.
+       Each theme names its own oscillator types, and an invalid one throws
+       from createOscillator — which would otherwise only surface as silence
+       in one world for whoever happened to play that far. */
+    musicProbe(){
+      const was=curMus,threw=[];
+      const all=Object.keys(MUSIC).map(w=>[w,MUSIC[w]]).concat([["BOSS",MUSIC_BOSS]]);
+      for(const [n,t] of all){
+        try{setTheme(t);mnext=0;musicTick();}catch(e){threw.push(n+": "+e.message);}
+      }
+      setTheme(was);return threw;},
     sfxKeys(){return ["jump","dbl","dash","land","step","orb","cry","hurt","juice",
       "juiceEnd","juiceExt","juiceLast","bossWeak","bossFlee","stomp","bossHit",
       "explode","victory","siren","dead","click","ding","unlock","nope"];},
@@ -3353,6 +3630,16 @@ if(/[?&]debug=1\b/.test(location.search)){
     probeDamage(){return (has("slayer")?2:1)*(juice>0?2:1);},
     keepAlive(){hp=hpMax;iFr=Math.max(iFr,4);},   /* heal only — never restarts */
     setDist(m){P.x=m*10;camX=P.x-W*.31;dist=m;edgeX=gen(camX+W);},
+    /* first metre of a named world — lets a test stand in a world on
+       purpose instead of guessing a distance and hoping */
+    worldStart(n){const i=WORLDS.findIndex(w=>w.n===n);return i<0?0:i*ZONE+ZONE*.5;},
+    /* `state` is a read-only snapshot, so a test cannot reach bossWins by
+       assigning to it. Needed to get past the scripted first fight. */
+    setWins(n){bossWins=Math.max(0,n|0);},
+    /* Inverse of forceBoss: pushes the next encounter out of reach so a test
+       can travel the worlds without one spawning on the way (the first boss
+       is due at 350m, which is inside the second world). */
+    holdBoss(){boss=null;nextBoss=1e9;},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
     voidPlayer(){P.y=WH+200;},
     reachableBoss(){                     /* is the weak point inside jump range? */

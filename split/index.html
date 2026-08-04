@@ -7,6 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0B1226">
+  <meta name="description" content="Fill the meter, trigger JUICE MODE, go further. A single-file endless runner across seven worlds.">
   <title>Jump Juice Adventure</title>
   <link rel="stylesheet" href="jumpjuice.css">
 </head>
@@ -28,6 +29,10 @@
       <button class="btn" id="bChars">Juice Heroes</button>
       <button class="btn" id="bLab">Juice Lab</button>
       <button class="btn" id="bAch">Juice Journey</button>
+      <!-- Hidden until the browser says the game is actually installable, or
+           until we detect an iOS browser (which never fires the event and
+           needs the Share-sheet instructions instead). -->
+      <button class="btn" id="bInstall" style="display:none">Install</button>
     </div>
     <div class="list" id="msStart"></div>
   </div>
