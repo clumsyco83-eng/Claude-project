@@ -46,6 +46,11 @@ let usedTouch=TOUCH&&!matchMedia("(pointer:fine)").matches;
    ?debug=1 query flag as the test hook, so a shipped build never shows it
    and it costs nothing (the draw call is behind this constant). */
 const DBG=/[?&]debug=1\b/.test(location.search);
+/* The on-canvas debug overlay can be switched off while KEEPING the debug
+   hook, so screenshot tooling can pose a scene through JJA_DEBUG and still
+   capture a clean frame. Without this the overlay is baked into every
+   store screenshot. */
+let dbgDraw=true;
 let dbgFps=60,dbgLast=0,dbgAcc=0,dbgN=0;
 /* Opt-in frame profiler. profN counts down the frames still being sampled;
    at 0 the loop does no timing work at all. */
@@ -2784,7 +2789,7 @@ function draw(){
   if(flash>.01&&!calm()){ctx.fillStyle="rgba(255,233,160,"+(flash*.4)+")";ctx.fillRect(-20,-20,W+40,H+40);}
 
   if(ST==="play")drawHUD();
-  if(DBG)drawDebug();
+  if(DBG&&dbgDraw)drawDebug();
 }
 let vigKey="",vig=null;
 
@@ -3700,6 +3705,21 @@ if(/[?&]debug=1\b/.test(location.search)){
        skipping draws and any later comparison measures the watchdog
        instead of the thing under test. */
     resetLite(){autoLite=false;slowFrames=0;resize();},
+    /* hide the on-canvas debug overlay but keep this hook alive */
+    overlay(on){dbgDraw=!!on;return dbgDraw;},
+    /* Screenshot mode. Store art has to show the GAME, not the things that
+       only appear to a brand-new player: the first-run tutorial prompts,
+       the audio toast and the rotate banner all sat in the first capture
+       pass. Marks the tutorial seen, clears any transient message, and
+       drops the debug overlay. */
+    capture(){
+      dbgDraw=false;
+      SAVE.tut=1;save();
+      tutI=TUT.length;
+      const s=$("snack");if(s)s.classList.remove("show");
+      clearTimeout(snackT);
+      const r=$("rot");if(r)r.classList.remove("show");
+      return true;},
     setOpt(k,v){const el=$({snd:"oSnd",vib:"oVib",calm:"oCalm",bat:"oBat",
                             inv:"oInv",mod:"oMod"}[k]);
                 if(!el)return false;el.checked=!!v;
