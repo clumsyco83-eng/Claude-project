@@ -557,6 +557,11 @@ One missing icon would otherwise cost all offline support.
 | `pwa.mjs` | — | **25** | 25/25 |
 | `genvalidate.mjs` | — | — | 122,555 platforms, 0 invalid |
 | `economy.mjs` | — | — | first paid hero 13.2 min (target 10–20) |
+| `soak.mjs --min=12` | — | — | 18.1 km, heap 9.5MB → 9.5MB (ratio 1.00), 0 errors |
+
+The soak matters more than usual this pass: the music scheduler creates
+oscillator and gain nodes every beat, and eight themes now drive it. A flat
+heap over 12 minutes of continuous play is what rules out an audio-node leak.
 
 New coverage worth naming:
 
