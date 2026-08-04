@@ -302,3 +302,41 @@ row** (real streak tracking). Awards unlock 5 Juice Mode glow skins.
 `test/features.mjs` — 34 new assertions, all passing.
 `test/smoke.mjs` — 60 assertions × 5 device profiles, all passing.
 `test/hostile.mjs` — 19 crippled-environment cases, no hangs.
+
+---
+
+# Readability pass (2026-08-04)
+
+## Bug: the boss banner and the popup stack fought for the same line
+
+Found by reading the screenshots rather than the assertions — every suite
+was green while this was on screen.
+
+Floating popups (`pop()`) are anchored to the player and drift upward with
+`vy = -1.05`. The boss banner is drawn at a fixed `WH*.42`, "on the band, at
+eye level". At the one moment both are guaranteed to be on screen — Juice
+Mode triggering as a boss warns — the popup column drifts straight through
+the banner. `JUICE MODE`, `MOUNTAIN` and `DOUBLE POINTS` landed on top of
+`DODGE THE DIVE — THEN STOMP THE GLOWING CORE`, and neither was readable.
+
+Visible on desktop and on iPhone portrait. The cost is real: that subtitle
+only shows for `SAVE.bossKills < 1`, so the run where it is unreadable is a
+first-timer's only explanation of the dodge→stomp loop.
+
+**Fix.** Popups fade out inside the strip the banner reserves, and are
+untouched the rest of the run (`popBandAlpha()`). The banner wins the
+collision because it is the time-critical instruction and it is on screen
+for about a second, while juice state is already mirrored in the top HUD.
+
+**Second pass — the first fix was measured wrong.** It tested the popup's
+*baseline* against the strip. `fillText` paints a full cap-height **above**
+the baseline, so a 24px popup sitting just below the strip still drew up
+into it, leaving a faded `JUICE MODE` ghost grazing the DODGE line. Now the
+popup's ink box (`y - size` … `y + size*0.25`) is tested, and the size is
+threaded through from the draw loop.
+
+## Verification
+`test/features.mjs` — 8 new assertions (34 → 43), all passing.
+`test/smoke.mjs` — 60 × 5 device profiles, unchanged, all passing.
+`test/hostile.mjs` — 19 cases, no hangs.
+Screenshots re-shot on all 4 profiles: all three banner lines legible, no ghost.

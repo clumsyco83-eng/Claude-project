@@ -39,7 +39,7 @@ node test/features.mjs
 node test/hostile.mjs
 node test/build-artifact.mjs            # → dist/jumpjuice-artifact.html
 ```
-All currently pass: **60×5 + 34 + 19 cases, zero JS errors.**
+All currently pass: **60×5 + 43 + 19 cases, zero JS errors.**
 
 Playwright is at `/opt/node22/lib/node_modules/playwright`, Chromium at
 `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
@@ -133,6 +133,14 @@ daily missions, daily modifier (switchable off in pause), first-run tutorial,
 
 7. The `seeded()` PRNG was investigated and is **fine** (14.3% same-as-yesterday
    vs 16.7% expected for a fair d6). Don't "fix" it.
+
+8. **Boss banners reserve a strip of the band, and popups fade out inside it**
+   (`popBandAlpha()`). Popups are player-anchored and drift up through exactly
+   the line the banner sits on, which used to stack `JUICE MODE` on top of
+   `DODGE THE DIVE — THEN STOMP THE GLOWING CORE`. If you move the banner off
+   `WH*.42`, move the strip with it. The test is on the popup's **ink box**,
+   not its baseline — `fillText` paints a cap-height above the baseline, so a
+   baseline-only test lets tall popups draw straight through the strip.
 
 ---
 
