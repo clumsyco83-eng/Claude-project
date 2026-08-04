@@ -111,64 +111,15 @@ canvas{display:block;touch-action:none}
 .padside{position:absolute;bottom:calc(12px + var(--sab));display:flex;gap:10px;align-items:flex-end}
 #padL{left:calc(12px + var(--sal))}
 #padR{right:calc(12px + var(--sar))}
-/* Sizes follow the brief: move 60-68, dash 62-70, jump 78-88, and jump stays
-   visibly the largest. Every target clears the 56px minimum even in the
-   short-viewport fallback below. */
-.pbtn{pointer-events:auto;width:64px;height:64px;border-radius:50%;
-  border:1.5px solid rgba(168,184,216,.34);
-  background:rgba(11,18,38,.40);color:var(--bone);line-height:1;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;position:relative;
-  touch-action:none;-webkit-user-select:none;user-select:none;
-  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
-  transition:transform .055s ease,background .09s ease,
-             box-shadow .09s ease,opacity .12s ease,filter .09s ease}
-.pbtn svg{width:46%;height:46%;fill:currentColor;pointer-events:none;
-  /* a drop-shadow keeps the glyph legible over a bright world without
-     needing an opaque button */
-  filter:drop-shadow(0 1px 1.5px rgba(11,18,38,.85))}
-/* Pressed: slightly smaller, brighter, with a soft inner glow. */
-.pbtn:active,.pbtn.hold{transform:scale(.93);filter:brightness(1.35);
-  box-shadow:inset 0 0 14px rgba(255,255,255,.28)}
-.pbtn:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
-/* Left/right: neutral pale-blue, the quietest of the four. */
-#pLeft,#pRight{color:#CFE0F5}
-/* Dash: cyan accent. */
-.pbtn.dash{width:66px;height:66px;color:#9BEFFF;
-  background:rgba(95,232,255,.16);border-color:rgba(95,232,255,.45)}
-/* Jump: warm juice accent, largest, strongest border — the primary action. */
-.pbtn.jump{width:84px;height:84px;color:#FFE9A0;
-  background:rgba(255,201,74,.22);border-color:rgba(255,201,74,.60);
-  box-shadow:0 0 0 1px rgba(255,201,74,.16)}
-.pbtn.jump:active,.pbtn.jump.hold{box-shadow:inset 0 0 18px rgba(255,233,160,.4)}
-/* Dash cooldown: a conic sweep that empties on use and refills smoothly.
-   --cd runs 0 (just used) to 1 (ready). */
-.cdring{position:absolute;inset:-1.5px;border-radius:50%;pointer-events:none;
-  background:conic-gradient(rgba(95,232,255,.62) calc(var(--cd,1)*360deg),
-                            rgba(95,232,255,0) 0);
-  -webkit-mask:radial-gradient(circle,transparent 61%,#000 63%);
-          mask:radial-gradient(circle,transparent 61%,#000 63%)}
-.pbtn.cool{opacity:.46}
-/* One pulse when dash becomes ready — not a continuous animation, which
-   would pull the eye away from the game for the entire cooldown-free time. */
-@keyframes cdReady{0%{box-shadow:0 0 0 0 rgba(95,232,255,.55)}
-                   100%{box-shadow:0 0 0 13px rgba(95,232,255,0)}}
-.pbtn.ready{animation:cdReady .42s ease-out 1}
-/* Double-jump availability: a second faint ring, on only while a mid-air
-   jump is actually available. No text on the button. */
-.dblring{position:absolute;inset:5px;border-radius:50%;pointer-events:none;
-  border:2px solid rgba(255,233,160,.72);opacity:0;transform:scale(.82);
-  transition:opacity .13s ease,transform .13s ease}
-.pbtn.dbl .dblring{opacity:1;transform:scale(1)}
-@media (prefers-reduced-motion: reduce){
-  .pbtn,.dblring{transition:none}
-  .pbtn.ready{animation:none}
-}
-/* Short viewports (landscape phones): scale down but never below 56px. */
-@media (max-height:420px){
-  .pbtn{width:58px;height:58px}
-  .pbtn.dash{width:58px;height:58px}
-  .pbtn.jump{width:72px;height:72px}
-}
+.pbtn{pointer-events:auto;width:60px;height:60px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(11,18,38,.42);color:var(--bone);font-size:19px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;touch-action:none;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:transform .06s ease,background .1s ease}
+.pbtn:active,.pbtn.hold{transform:scale(.92);background:rgba(255,201,74,.34)}
+.pbtn.jump{width:78px;height:78px;font-size:24px;background:rgba(255,201,74,.24);border-color:rgba(255,201,74,.5)}
+.pbtn.dash{background:rgba(127,231,255,.18);border-color:rgba(127,231,255,.42)}
+.pbtn.cool{opacity:.42}
+@media (max-height:420px){.pbtn{width:52px;height:52px;font-size:17px}.pbtn.jump{width:66px;height:66px;font-size:21px}}
 
 #pauseBtn{position:absolute;top:calc(6px + var(--sat));right:calc(8px + var(--sar));z-index:4;
   width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(11,18,38,.55);
@@ -211,19 +162,12 @@ canvas{display:block;touch-action:none}
 @keyframes lateHint{to{opacity:1}}
 
 /* transient sound-enabled toast */
-/* Sits at the bottom by default, but lifts clear of the on-screen controls
-   while they are up — at the default offset it landed squarely across the
-   dash and jump buttons, so a toast during play blocked the two controls
-   the player needs most. */
 #snack{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--sab));z-index:8;
   font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
   padding:9px 14px;border-radius:9px;background:rgba(11,18,38,.9);border:1px solid var(--line);
   color:var(--amber);opacity:0;transition:opacity .25s ease;pointer-events:none;text-align:center;
   max-width:min(88vw,340px)}
 #snack.show{opacity:1}
-/* 84px jump button + 12px inset + breathing room */
-#pad.show ~ #snack{bottom:calc(112px + var(--sab))}
-@media (max-height:420px){#pad.show ~ #snack{bottom:calc(96px + var(--sab))}}
 
 .guide{display:grid;gap:4px;font-family:var(--mono);font-size:clamp(9px,1.6vh,10.5px);color:var(--haze);
   letter-spacing:.05em;text-align:center;line-height:1.6}
@@ -337,51 +281,14 @@ canvas{display:block;touch-action:none}
   <!-- Scheme B: optional on-screen controls. Hidden unless chosen in pause.
        Steering is a left pad; jump and dash are separate right-hand buttons
        so a dash can never be mistaken for a jump. -->
-  <!-- Control icons, defined once and referenced by <use>. Drawn as paths
-       rather than text glyphs so they render identically on every platform
-       (the old ◀ ▶ » ▲ characters are font-dependent and the double-angle
-       in particular is inconsistent between iOS and Android). -->
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-    <g id="icoLeft"><path d="M15 4 L7 12 L15 20 Z"/></g>
-    <g id="icoRight"><path d="M9 4 L17 12 L9 20 Z"/></g>
-    <!-- dash: double chevron with speed lines, so the icon reads as
-         forward speed rather than "next" -->
-    <g id="icoDash">
-      <path d="M9 5 L16 12 L9 19 Z"/>
-      <path d="M15 5 L22 12 L15 19 Z" opacity=".62"/>
-      <rect x="1" y="7"  width="6" height="1.9" rx=".95" opacity=".75"/>
-      <rect x="0" y="11" width="8" height="1.9" rx=".95"/>
-      <rect x="2" y="15" width="5" height="1.9" rx=".95" opacity=".75"/>
-    </g>
-    <!-- jump: unambiguous upward arrow -->
-    <g id="icoJump">
-      <path d="M12 3 L20 12 L14.6 12 L14.6 21 L9.4 21 L9.4 12 L4 12 Z"/>
-    </g>
-  </defs></svg>
-
   <div id="pad">
     <div class="padside" id="padL">
-      <button class="pbtn" id="pLeft" aria-label="Move left">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoLeft"/></svg>
-      </button>
-      <button class="pbtn" id="pRight" aria-label="Move right">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoRight"/></svg>
-      </button>
+      <button class="pbtn" id="pLeft" aria-label="Move left">&#9664;</button>
+      <button class="pbtn" id="pRight" aria-label="Move right">&#9654;</button>
     </div>
     <div class="padside" id="padR">
-      <!-- Dash carries its own radial cooldown, drawn as a conic-gradient
-           ring around the button so the player never has to look up at the
-           HUD mid-run. The HUD readout is kept as well. -->
-      <button class="pbtn dash" id="pDash" aria-label="Dash">
-        <i class="cdring" id="pDashRing"></i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoDash"/></svg>
-      </button>
-      <!-- Jump stays the largest and most prominent control. The second
-           ring lights only while a double jump is actually available. -->
-      <button class="pbtn jump" id="pJump" aria-label="Jump">
-        <i class="dblring" id="pJumpDbl"></i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoJump"/></svg>
-      </button>
+      <button class="pbtn dash" id="pDash" aria-label="Dash">&#187;</button>
+      <button class="pbtn jump" id="pJump" aria-label="Jump">&#9650;</button>
     </div>
   </div>
 
@@ -590,9 +497,6 @@ const saver=()=>OPT.bat||autoLite;
    startup call (which runs before load()) cannot save defaults over a real
    save file. */
 let optsReady=false;
-/* True once a save has been read that contained a real, valid `scheme`.
-   Only then is the player's control choice considered deliberate. */
-let schemeWasSaved=false;
 function syncOpts(){
   OPT.snd=$("oSnd").checked; OPT.vib=$("oVib").checked; OPT.calm=$("oCalm").checked;
   OPT.bat=$("oBat").checked; OPT.inv=$("oInv").checked; OPT.mod=$("oMod").checked;
@@ -609,14 +513,6 @@ function applyOpts(){
   $("oBat").checked=!!o.bat; $("oInv").checked=!!o.inv; $("oMod").checked=!!o.mod;
   $("oVol").value=Math.round(clamp(Number(o.vol),0,1)*100);
   OPT.scheme=SCHEMES.includes(o.scheme)?o.scheme:OPT_DEF.scheme;
-  /* On-screen buttons are the default for a NEW player on a touch device:
-     they are the layout the game is designed around, and discovering the
-     gesture scheme by accident is worse than being shown the controls.
-     Gated on schemeWasSaved so a returning player who deliberately chose
-     gestures is never overridden — the flag is only set when a save
-     actually contained a valid scheme. Desktop is unaffected: TOUCH is
-     false there, and keyboard control is independent of this setting. */
-  if(!schemeWasSaved&&TOUCH)OPT.scheme="buttons";
   optsReady=true;
   syncOpts();
   setVol(OPT.vol);
@@ -775,12 +671,7 @@ function adopt(raw){
         const n=Number(ro.vol);
         SAVE.opt.vol=Number.isFinite(n)?clamp(n,0,1):OPT_DEF.vol;
       } else if(k==="scheme"){
-        /* Remember whether the player ever actually HAD a scheme saved.
-           Without this flag "never chose" and "chose gestures" are
-           indistinguishable after migration, and the touch default below
-           would silently overwrite a deliberate choice on every load. */
-        if(SCHEMES.includes(ro.scheme)){SAVE.opt.scheme=ro.scheme;schemeWasSaved=true;}
-        else SAVE.opt.scheme=OPT_DEF.scheme;
+        SAVE.opt.scheme=SCHEMES.includes(ro.scheme)?ro.scheme:OPT_DEF.scheme;
       } else if(ro[k]!==undefined){
         SAVE.opt[k]=!!ro[k];
       }
@@ -1022,15 +913,7 @@ function sfx(k,x){
   switch(k){
   case"jump":     bl(300,760,.11,"triangle",.17);break;
   case"dbl":      bl(480,1020,.12,"square",.14);break;
-  /* Three layers, ~150ms total, deliberately unlike jump (rising blip),
-     land (low thud) or hurt (long sawtooth fall):
-       1. bright filtered-noise air attack — the "sh" of the whoosh
-       2. fast downward pitch sweep — the sense of leaving somewhere
-       3. very short low body — weight, so it is not just hiss
-     Levels are kept well under 1.0 combined so the mix cannot clip. */
-  case"dash":     nzs(.11,.13,2600,1.6);
-                  bl(1150,300,.13,"sawtooth",.10);
-                  bl(260,120,.07,"sine",.11);break;
+  case"dash":     nzs(.14,.16,2200);bl(700,240,.14,"sawtooth",.12);break;
   case"land":     bl(190,70,.1,"sine",.1+.2*(x||0));nzs(.06,.05+.07*(x||0),900);break;
   case"step":     nzs(.045,.04,1600);break;
   case"orb":      bl(620+Math.min(x||0,18)*44,1180+Math.min(x||0,18)*44,.09,"square",.12);break;
@@ -1139,13 +1022,7 @@ const ACH=[
  /* was "Unlock every runner" but only checked 6 of 30 — text and test
     now agree, and the real completionist goal is its own award */
  {id:"a6",t:"Unlock 10 runners",chk:()=>SAVE.unlocked.length>=10},
- /* Text is derived from the roster: it read "all 30 runners" while the check
-    used CHARS.length, which is 34 — the award asked for four more heroes
-    than it named. A GETTER, not a plain string: CHARS is declared after
-    this table, so evaluating it eagerly here is a temporal-dead-zone crash
-    at load. Every reader uses `a.t` as a property, so nothing else changes. */
- {id:"a9",get t(){return "Unlock all "+CHARS.length+" heroes";},
-  chk:()=>SAVE.unlocked.length>=CHARS.length},
+ {id:"a9",t:"Unlock all 30 runners",chk:()=>SAVE.unlocked.length>=CHARS.length},
  {id:"a7",t:"Defeat the Sky Tyrant",chk:()=>SAVE.bossKills>=1},
  {id:"a8",t:"Defeat 10 bosses",chk:()=>SAVE.bossKills>=10},
  {id:"a10",t:"Run 1000m in one run",chk:()=>SAVE.best>=1000},
@@ -1611,13 +1488,6 @@ const FALL=2.2,MAXV=17,SPD=4.5,COY=5,BUF=8,DASH_V=13,DASH_T=10,DASH_CD=48;
 
 /* ══════ RUN STATE ════════════════════════════════════════════════ */
 let ST="menu",frame=0,camX=0,shake=0,hstop=0,flash=0,deadAt=0,paused=false;
-/* Vertical shake is tracked separately so a dash can be weighted toward the
-   horizontal (it is a horizontal move — shaking the screen up and down for
-   it reads as an impact rather than speed). Existing callers set `shake`
-   only and get the original uniform behaviour, because shakeY falls back
-   to shake when it has not been set higher. shakeT gives an impulse a
-   defined lifetime so a held dash cannot keep re-arming it. */
-let shakeY=0,shakeT=0;
 let plats=[],orbs=[],foes=[],wx=[],clouds=[],shots=[];
 let dist=0,orbs_=0,crys=0,combo=0,comboMax=1,comboT=0,jumps=0,perfect=0,edgeX=0;
 let juice=0,juiceMax=480,meter=0,hp=3,hpMax=3,iFr=0,worldI=0;
@@ -1631,123 +1501,22 @@ let kills=0,juiceUses=0,juiceExtRun=0;   /* run-over screen counters */
 const P={x:80,y:200,w:22,h:30,vx:0,vy:0,grd:false,lg:-999,sx:1,sy:1,face:1,rot:0,air:0,
          jumpsUsed:0,dash:0,dashCd:0,wall:0,lastSafe:{x:80,y:200}};
 
-/* ══════ GAME FEEL ════════════════════════════════════════════════
-   Every tunable that shapes how jumping and dashing FEEL, in one place.
-   Nothing here changes physics — the collision box, gravity, coyote time,
-   jump buffering and variable jump height are untouched. These values only
-   drive what the player sees, hears and feels.
-
-   Why the split matters: an earlier pass set P.sx/P.sy from four unrelated
-   places, so a landing squash could be erased mid-frame by the run cycle
-   and a dash pose could be overwritten by a double jump. The visual state
-   below is priority-ordered so that cannot happen. */
-const FX={
-  /* ── take-off ──
-     Narrower and taller: the body loads upward. Anchored at the FEET in the
-     renderer, so the character does not appear to teleport when it scales. */
-  jumpSX:.80, jumpSY:1.26,
-  jumpDust:7,                 /* particles per grounded take-off          */
-  /* ── double jump ──
-     Stronger stretch than a ground jump so the second one reads as more,
-     plus a ring the ground jump never gets. */
-  dblSX:.74, dblSY:1.34,
-  dblBurst:10,                /* 7-12 per the brief                       */
-  dblKick:.5,                 /* existing rotational kick, preserved       */
-  dblShake:1.6,               /* tiny — a double jump is not an impact     */
-  /* ── landing tiers ──
-     Selected from impact speed as a fraction of terminal velocity. Three
-     tiers so a drop from one platform does not feel like a 20m fall. */
-  landSoft:.28, landHard:.62, /* imp<soft = soft, >hard = hard, else med   */
-  landDust:[4,9,15],          /* soft / medium / hard particle counts      */
-  landSquash:[.14,.26,.42],   /* how much the body widens                  */
-  landShake:[0,2.2,5.5],      /* hard sits in the brief's 4-7 band         */
-  landStop:[0,0,2],           /* hit-stop frames — hard landings only      */
-  landRebound:.055,           /* overshoot past 1 before settling          */
-  /* ── recovery ──
-     Springy rather than linear: the body returns fast then eases, which is
-     what makes squash read as elastic instead of mechanical. */
-  squashSpring:.26, squashDamp:.62,
-  /* ── dash ── */
-  dashSX:1.30, dashSY:.80,    /* stretched along travel                    */
-  dashLean:.34,               /* radians toward the dash direction         */
-  dashShakeX:3.4, dashShakeY:1.5, /* horizontal-weighted, per the brief    */
-  dashShakeMs:110,            /* ~7 frames at 60Hz (brief: 80-130ms)       */
-  dashBurst:14,               /* particles at the moment of the dash       */
-  dashStream:2,               /* per frame during the sustained dash       */
-  dashTrailGap:7,             /* px travelled between afterimages — spacing
-                                 by DISTANCE stops the trail becoming a row
-                                 of identical stacked duplicates           */
-  dashLead:58,                /* extra camera look-ahead while dashing     */
-  dashLeadEase:.06,           /* how fast the camera adopts/returns to it  */
-  dashRingMs:180,             /* energy ring lifetime (brief: 120-220ms)   */
-  /* ── damage ── */
-  hurtSX:1.34, hurtSY:.72,
-};
-/* Visual-only player state. Kept apart from P's physics fields on purpose:
-   nothing here may ever be read by collision or movement code. */
-const PV={
-  action:"none",              /* what is currently driving the pose        */
-  actionT:0,                  /* frames remaining at this priority         */
-  sxv:0, syv:0,               /* spring velocities for the squash          */
-  lean:0, leanT:0,            /* body tilt, used by dash                   */
-  dashGlow:0,                 /* 0..1, fades the dash ring + edge highlight*/
-  dashDir:1,
-  landStrength:0,             /* 0..1, last landing impact                 */
-  trailX:0, trailY:0,         /* last afterimage position (for spacing)    */
-  camLead:0,                  /* current extra look-ahead                  */
-};
-/* Priority: a lower number may not overwrite a higher one while it is
-   still playing. Damage always wins — being hit must read even if it
-   happens mid-dash. */
-const PV_PRI={none:0,run:1,jump:2,dbl:3,dash:4,land:5,hurt:6};
-function setPose(action,frames,sx,sy){
-  const cur=PV_PRI[PV.action]||0, next=PV_PRI[action]||0;
-  if(PV.actionT>0&&next<cur)return false;   /* higher-priority pose holds  */
-  PV.action=action;PV.actionT=frames;
-  if(sx!==undefined){P.sx=sx;P.sy=sy;PV.sxv=0;PV.syv=0;}
-  return true;
-}
-/* Explicit reset. Deliberately NOT setPose("none") — that would have to be
-   allowed to override any priority, which would give game code a way to
-   cancel a damage reaction by accident. Only the run reset and tests use
-   this. */
-function clearPose(){PV.action="none";PV.actionT=0;PV.sxv=0;PV.syv=0;}
-
 /* ── particles: fixed-size ring buffer, zero allocation at runtime.
    The original pushed into an unbounded array and rebuilt it with
    .filter() every frame — one of the larger GC sources on mobile. ── */
 const PMAX=380,PART=new Array(PMAX);
-/* Fields beyond the original x/y/vx/vy/life/r/gold are pre-allocated on
-   every slot, not added on demand — a particle that grows a property at
-   runtime deoptimises the whole pool's hidden class.
-     k    kind: 0 square (original), 1 speed streak, 2 juice droplet
-     ang  streak angle, len/wid streak dimensions
-     col  explicit colour, or "" to use the gold/neutral default
-     drag per-frame velocity retention                                    */
-for(let i=0;i<PMAX;i++)PART[i]={x:0,y:0,vx:0,vy:0,life:0,r:1,gold:false,
-                                k:0,ang:0,len:0,wid:1,col:"",drag:1,fade:1};
+for(let i=0;i<PMAX;i++)PART[i]={x:0,y:0,vx:0,vy:0,life:0,r:1,gold:false};
 let pIdx=0;
 function spark(x,y,vx,vy,r,gold,life){
   const q=PART[pIdx];pIdx=(pIdx+1)%PMAX;
-  q.x=x;q.y=y;q.vx=vx;q.vy=vy;q.r=r;q.gold=!!gold;q.life=life||1;
-  q.k=0;q.col="";q.drag=1;q.fade=1;q.len=0;q.ang=0;q.wid=1;return q;}
-/* Directional particle used by the dash: a stretched streak or a droplet
-   that travels opposite the movement and fades fast. */
-function streak(x,y,vx,vy,len,wid,col,life,fade,kind){
-  const q=PART[pIdx];pIdx=(pIdx+1)%PMAX;
-  q.x=x;q.y=y;q.vx=vx;q.vy=vy;q.life=life||1;q.r=wid;
-  q.k=kind===undefined?1:kind;q.ang=Math.atan2(vy,vx);q.len=len;q.wid=wid;
-  q.col=col||"";q.gold=false;q.drag=.90;q.fade=fade||1.8;return q;}
+  q.x=x;q.y=y;q.vx=vx;q.vy=vy;q.r=r;q.gold=!!gold;q.life=life||1;return q;}
 function burst(n,x,y,sp,r,gold){
   for(let i=0;i<n;i++)spark(x,y,(Math.random()-.5)*sp,(Math.random()-.5)*sp,r*(.6+Math.random()*.8),gold);}
 function clearParts(){for(let i=0;i<PMAX;i++)PART[i].life=0;}
 
-/* ── trail: ring buffer ──
-   Each entry stores enough to reproduce the pose it was captured in, so an
-   afterimage matches what the character actually looked like rather than
-   re-drawing the CURRENT pose at an old position. */
+/* ── trail: ring buffer ── */
 const TMAX=22,TRAIL=new Array(TMAX);
-for(let i=0;i<TMAX;i++)TRAIL[i]={x:0,y:0,rot:0,life:0,sx:1,sy:1,face:1,dash:0,juice:false};
+for(let i=0;i<TMAX;i++)TRAIL[i]={x:0,y:0,rot:0,life:0};
 let tIdx=0;
 function clearTrail(){for(let i=0;i<TMAX;i++)TRAIL[i].life=0;}
 
@@ -1818,158 +1587,8 @@ function tryDash(){
   if(ST!=="play"||paused||P.dashCd>0)return;
   P.dash=DASH_T*(has("dash")?1.6:1);                /* the `dash` passive was never implemented */
   P.dashCd=DASH_CD*(has("dash")?.6:1);
-  P.vy=0;dashedOnce=true;
-  triggerDashFeedback();
-}
-/* ══════ DASH FEEDBACK ════════════════════════════════════════════
-   Called EXACTLY ONCE when a dash begins. Everything that should happen
-   at the moment of the dash lives here — sound, shake, burst, pose, ring
-   — so none of it can end up in the per-frame path, which is what made
-   the original re-trigger sparks every frame it was held.
-
-   The sustained part of the dash (trail, streaming particles) is in
-   dashStep(), called once per simulated frame while P.dash>0. */
-function triggerDashFeedback(){
-  const cx=P.x+P.w/2, cy=P.y+P.h/2, dir=P.face;
-  PV.dashDir=dir;
-  /* pose: stretched along travel, leaning into it */
-  setPose("dash",Math.max(10,P.dash|0),FX.dashSX,FX.dashSY);
-  PV.lean=FX.dashLean*dir;PV.leanT=Math.max(12,P.dash|0);
-  PV.dashGlow=1;
-  PV.trailX=P.x;PV.trailY=P.y;
-  /* camera impulse — horizontal-weighted, decays smoothly, never in Calm
-     Mode or under prefers-reduced-motion */
-  if(!calm()){
-    const k=saver()?.6:1;
-    shake=Math.max(shake,FX.dashShakeX*k);
-    shakeY=Math.max(shakeY,FX.dashShakeY*k);
-    shakeT=Math.round(FX.dashShakeMs*.06);       /* ms -> frames at 60Hz */
-  }
-  sfx("dash");buzz(14);
-  /* start burst: thrown BACKWARD, opposite the dash */
-  const col=juice>0?juiceCol():me().hex;
-  const n=saver()?Math.round(FX.dashBurst*.5):FX.dashBurst;
-  for(let i=0;i<n;i++){
-    const sp=3+Math.random()*5.5, spread=(Math.random()-.5)*2.6;
-    streak(cx-dir*4,cy+(Math.random()-.5)*P.h*.7,
-           -dir*sp,spread,
-           7+Math.random()*13, 1.2+Math.random()*1.4,
-           col, 1, 2.1, Math.random()<.35?2:1);
-  }
-  /* a couple of neutral dust motes so the burst is not one flat colour */
-  if(!saver())for(let i=0;i<4;i++)
-    spark(cx-dir*6,cy+(Math.random()-.5)*P.h,-dir*(1+Math.random()*2),
-          (Math.random()-.5)*2.4,1.4+Math.random()*1.6,juice>0);
-  /* compressed energy ring at the hero, tinted by juice or hero colour */
-  ring(cx,cy,col,3.2);
-}
-/* ══════ JUMP / LAND FEEDBACK ═════════════════════════════════════
-   Each is one call at the moment of the event, mirroring the dash. */
-
-/* Ground colour under the player, so dust in snow, ash and cloud reads
-   differently from dust on ordinary ground. Falls back to the world's
-   platform colour when the player is not over anything. */
-function groundTint(){
-  const wl=worldAt(dist);
-  if(P.onPl&&P.onPl.spike)return wl.p;
-  return wl.p||"#A8B8D8";
-}
-/* Take-off puff at BOTH feet, thrown outward and slightly up. */
-function takeoffDust(){
-  const n=saver()?4:FX.jumpDust, col=groundTint(), fy=P.y+P.h;
-  for(let i=0;i<n;i++){
-    const side=i%2?1:-1;
-    const q=spark(P.x+P.w/2+side*(3+Math.random()*4),fy,
-                  side*(.6+Math.random()*1.7),-(.3+Math.random()*1.3),
-                  1.4+Math.random()*2,false,.9);
-    q.col=col;q.drag=.94;q.fade=1.5;
-  }
-}
-/* The double jump gets a ring and a circular burst the ground jump never
-   gets, so the two read as different actions rather than one repeated. */
-function doubleJumpBurst(){
-  setPose("dbl",11,FX.dblSX,FX.dblSY);
-  const cx=P.x+P.w/2, cy=P.y+P.h, col=juice>0?juiceCol():me().hex;
-  ring(cx,cy,col,2.6);
-  const n=saver()?6:FX.dblBurst;
-  for(let i=0;i<n;i++){
-    const a=(i/n)*Math.PI*2, sp=1.5+Math.random()*1.9;
-    const q=spark(cx,cy,Math.cos(a)*sp,Math.abs(Math.sin(a))*sp*.8,
-                  1.5+Math.random()*1.5,juice>0,1);
-    q.col=col;q.drag=.93;
-  }
-  /* a double jump is not an impact — a tiny nudge only, never in Calm Mode */
-  if(!calm())shake=Math.max(shake,FX.dblShake);
-}
-/* Landing, in three tiers chosen from impact speed. Returns the tier so the
-   caller can keep its existing perfect-landing and shockwave logic. */
-function landingFeedback(imp,groundY){
-  const tier=imp<FX.landSoft?0:(imp<FX.landHard?1:2);
-  const col=groundTint(), cx=P.x+P.w/2;
-  PV.landStrength=imp;
-  /* squash scaled within the tier, so a landing still varies inside a band */
-  const s=FX.landSquash[tier]*(.7+imp*.5);
-  setPose("land",tier===2?14:10,1+s,1-s*.85);
-  /* dust: wider and flatter the harder the landing */
-  let n=FX.landDust[tier];
-  if(saver())n=Math.max(3,Math.round(n*.55));
-  for(let i=0;i<n;i++){
-    const side=i%2?1:-1, spread=tier===2?3.6:tier===1?2.6:1.7;
-    const q=spark(cx+side*(2+Math.random()*5),groundY,
-                  side*(.5+Math.random()*spread),-(Math.random()*(1+tier*.8)),
-                  1.4+Math.random()*(1.6+tier*.9),false,1);
-    q.col=col;q.drag=.93;q.fade=1.4;
-  }
-  if(tier===2){
-    /* a hard landing gets a ground ring and a brief flash AT THE FEET —
-       never a full-screen flash, which would wash out the play area */
-    ring(cx,groundY,col,4.2);
-    for(let i=0;i<4;i++){
-      const q=streak(cx+(i%2?1:-1)*(6+Math.random()*10),groundY,
-                     (i%2?1:-1)*(2+Math.random()*2.4),0,
-                     9+Math.random()*9,1.5,col,.9,2.2,1);
-      q.drag=.86;
-    }
-  }
-  if(!calm()){
-    const k=saver()?.7:1;
-    if(FX.landShake[tier]>0)shake=Math.max(shake,FX.landShake[tier]*imp*k);
-    if(FX.landStop[tier]>0)hstop=Math.max(hstop,FX.landStop[tier]);
-  }
-  sfx("land",imp);
-  if(tier===2)buzz(16); else if(tier===1)buzz(9);
-  return tier;
-}
-
-/* Per-frame dash upkeep: afterimages spaced by DISTANCE TRAVELLED and a
-   thin stream of speed particles. Spacing by distance rather than spawning
-   every frame is what stops the trail reading as a row of solid duplicate
-   characters when the player dashes slowly or stands still. */
-function dashStep(){
-  if(P.dash<=0)return;
-  const cx=P.x+P.w/2, cy=P.y+P.h/2, dir=PV.dashDir;
-  const col=juice>0?juiceCol():me().hex;
-  /* afterimages: skipped entirely in Calm Mode (repeated ghosting is the
-     motion-sensitivity problem) and thinned under Battery Saver */
-  if(!calm()){
-    const gap=FX.dashTrailGap*(saver()?1.9:1);
-    const dx=P.x-PV.trailX, dy=P.y-PV.trailY;
-    if(dx*dx+dy*dy>=gap*gap){
-      const t=TRAIL[tIdx];tIdx=(tIdx+1)%TMAX;
-      t.x=P.x;t.y=P.y;t.rot=P.rot;t.life=1;
-      t.sx=P.sx;t.sy=P.sy;t.face=P.face;t.dash=1;t.juice=juice>0;
-      PV.trailX=P.x;PV.trailY=P.y;
-    }
-  }
-  /* sustained speed particles: fewer than the start burst, per the brief */
-  const per=saver()?1:FX.dashStream;
-  for(let i=0;i<per;i++){
-    if(Math.random()>.75)continue;
-    streak(cx-dir*(2+Math.random()*8),cy+(Math.random()-.5)*P.h*.85,
-           -dir*(2.5+Math.random()*3.5),(Math.random()-.5)*1.3,
-           6+Math.random()*10, 1+Math.random()*1.2,
-           col, .85, 2.4, Math.random()<.3?2:1);
-  }
+  P.vy=0;sfx("dash");buzz(14);dashedOnce=true;
+  for(let i=0;i<10;i++)spark(P.x+P.w/2,P.y+P.h/2,-P.face*(2+Math.random()*4),(Math.random()-.5)*3,1.5+Math.random()*2.5,juice>0);
 }
 /* single keydown listener — the original registered two, so every key
    press ran the handler chain twice */
@@ -2076,63 +1695,15 @@ function bindHold(id,on,off){
   const up=e=>{e.preventDefault();e.stopPropagation();n.classList.remove("hold");if(off)off();};
   ["pointerup","pointercancel","lostpointercapture"].forEach(v=>n.addEventListener(v,up,{passive:false}));
 }
-/* A very short tick on the steering buttons only. Jump and dash already
-   buzz from their own feedback (buzz(14) in the dash, landings in the jump
-   arc), so ticking here too would double up on the same press. */
-const padTick=()=>buzz(6);
-bindHold("pLeft", ()=>{padL=true;padTick();}, ()=>{padL=false;});
-bindHold("pRight",()=>{padR=true;padTick();}, ()=>{padR=false;});
+bindHold("pLeft", ()=>{padL=true;}, ()=>{padL=false;});
+bindHold("pRight",()=>{padR=true;}, ()=>{padR=false;});
 bindHold("pJump", ()=>{tryJump();jumpHeld=true;}, ()=>{jumpHeld=false;});
 bindHold("pDash", ()=>{tryDash();});
 function syncSchemeUI(){
   const on=OPT.scheme==="buttons";
   $("schGesture").classList.toggle("on",!on);
   $("schButtons").classList.toggle("on",on);
-  /* The pad exists only during ACTIVE gameplay — never on a menu, never
-     while paused, never over the run-over screen. */
   $("pad").classList.toggle("show",on&&usedTouch&&ST==="play"&&!paused);
-}
-/* ══════ CONTROL FEEDBACK ═════════════════════════════════════════
-   Drives the dash cooldown ring and the double-jump indicator from real
-   game state. Called once per rendered frame, but every write is guarded
-   by a cached previous value: touching classList or a custom property on
-   an unchanged element still costs style invalidation, and this runs at
-   60Hz. */
-let _cdShown=-1,_dblShown=null,_coolShown=null;
-function syncPadState(){
-  const pad=$("pad");
-  if(!pad||!pad.classList.contains("show"))return;
-  const dashBtn=$("pDash"),ringEl=$("pDashRing"),jumpBtn=$("pJump");
-  if(!dashBtn||!jumpBtn)return;
-  /* dash cooldown 0..1 — quantised to 24 steps so the custom property is
-     not rewritten every single frame */
-  const maxCd=DASH_CD*(has("dash")?.6:1);
-  const cd=maxCd>0?Math.min(1,1-P.dashCd/maxCd):1;
-  const q=Math.round(cd*24);
-  if(q!==_cdShown){
-    _cdShown=q;
-    if(ringEl)ringEl.style.setProperty("--cd",(q/24).toFixed(3));
-  }
-  const cooling=P.dashCd>0;
-  if(cooling!==_coolShown){
-    _coolShown=cooling;
-    dashBtn.classList.toggle("cool",cooling);
-    if(!cooling){
-      /* one pulse on becoming ready, then the class is removed so it does
-         not keep animating while the player has dash available */
-      dashBtn.classList.remove("ready");
-      void dashBtn.offsetWidth;                 /* restart the animation */
-      dashBtn.classList.add("ready");
-      setTimeout(()=>dashBtn.classList.remove("ready"),460);
-    }
-  }
-  /* double jump available: airborne, under the cap, and not wall-locked */
-  const maxJ=juice>0?99:(RMOD==="NODBL"?1:2);
-  const dblReady=!P.grd&&P.jumpsUsed<maxJ&&ST==="play";
-  if(dblReady!==_dblShown){
-    _dblShown=dblReady;
-    jumpBtn.classList.toggle("dbl",dblReady);
-  }
 }
 ["schGesture","schButtons"].forEach(id=>$(id).addEventListener("click",()=>{
   OPT.scheme=$(id).dataset.scheme;
@@ -2421,11 +1992,6 @@ function start(){
   plats=[{x:0,y:330,w:320,h:18,type:"n",base:330,spike:false,life:0,gone:false,dir:1,mimic:0,high:false}];
   orbs.length=0;foes.length=0;wx.length=0;shots.length=0;clouds.length=0;
   clearParts();clearTrail();clearPops();
-  /* Reset the visual state with the run, or a pose left over from the last
-     death (or a dash that was mid-flight) bleeds into the new one. */
-  clearPose();PV.lean=0;PV.leanT=0;
-  PV.dashGlow=0;PV.landStrength=0;PV.camLead=0;PV.trailX=P.x;PV.trailY=P.y;
-  shakeY=0;shakeT=0;
   for(let i=0;i<9;i++)clouds.push({x:Math.random()*2600,y:40+Math.random()*140,s:.4+Math.random()*.7,w:70+Math.random()*90});
   camX=0;
   edgeX=gen(320);
@@ -2468,10 +2034,7 @@ function hurt(reason){
   hp--;iFr=95;
   sfx("hurt");buzz([0,45,40,45]);flash=.8;if(!calm())shake=9;combo=0;
   hstop=3;                                   /* brief hitstop: the hit reads */
-  /* Highest priority — being hit must read even mid-dash, and nothing may
-     overwrite it until it has played out. */
-  setPose("hurt",14,FX.hurtSX,FX.hurtSY);
-  PV.lean=0;PV.leanT=0;PV.dashGlow=0;
+  P.sx=1.34;P.sy=.72;                        /* squash so the body reacts    */
   pop(P.x+P.w/2,P.y-8,"-1 ♥","#FF6B7A",15);
   if(hp>0)pop(P.x+P.w/2,P.y-28,hp+(hp===1?" HEART LEFT":" HEARTS LEFT"),"#FFE9A0",12);
   for(let i=0;i<14;i++)
@@ -2565,13 +2128,7 @@ function damageFoe(f){
 /* ══════ STEP ═════════════════════════════════════════════════════ */
 function stepParticles(){
   for(let i=0;i<PMAX;i++){const q=PART[i];if(q.life<=0)continue;
-    q.x+=q.vx;q.y+=q.vy;
-    /* Speed streaks are near-weightless and drag hard — they should hang in
-       the air behind the dash, not arc to the floor like debris. */
-    q.vy+=q.k===1?.03:.16;
-    q.vx*=q.k===1?q.drag:(q.drag*.96);
-    if(q.k!==1)q.vy*=q.drag;
-    q.life-=.035*q.fade;}
+    q.x+=q.vx;q.y+=q.vy;q.vy+=.16;q.vx*=.96;q.life-=.035;}
   for(let i=0;i<POPMAX;i++){const q=POPS[i];if(q.life<=0)continue;
     q.y+=q.vy;q.vy*=.94;q.life-=.018;}
 }
@@ -2654,19 +2211,17 @@ function step(){
   if(wants){
     if(grace&&P.vy>=0){
       P.vy=JV;P.grd=false;P.lg=-999;bufAt=-999;jumpFrame=frame;P.jumpsUsed=1;
-      /* Physics is already applied above — the pose is purely visual and
-         adds no anticipation delay. */
-      setPose("jump",9,FX.jumpSX,FX.jumpSY);sfx("jump");jumps++;
-      takeoffDust();
+      P.sx=.76;P.sy=1.28;sfx("jump");jumps++;
+      for(let i=0;i<5;i++)spark(P.x+P.w/2,P.y+P.h,(Math.random()-.5)*3,Math.random()*1.4,1.5+Math.random()*2);
     } else if(P.wall&&!P.grd){
       P.vy=JV*(has("walljump")?1.12:.95);
       P.vx=-P.wall*(has("walljump")?9:6.5);
       P.face=-P.wall;bufAt=-999;jumpFrame=frame;P.jumpsUsed=has("walljump")?0:1;sfx("dbl");jumps++;
       for(let i=0;i<6;i++)spark(P.x+(P.wall>0?P.w:0),P.y+P.h/2,-P.wall*2,(Math.random()-.5)*3,1.8);
     } else if(P.jumpsUsed<maxJ&&!P.grd){
-      P.vy=JV*.88;bufAt=-999;jumpFrame=frame;P.jumpsUsed++;sfx("dbl");jumps++;
-      P.rot+=P.face*FX.dblKick;doubleJumped=true;
-      doubleJumpBurst();}}
+      P.vy=JV*.88;bufAt=-999;jumpFrame=frame;P.jumpsUsed++;P.sx=.8;P.sy=1.24;sfx("dbl");jumps++;
+      P.rot+=P.face*.5;doubleJumped=true;
+      for(let i=0;i<8;i++)spark(P.x+P.w/2,P.y+P.h,(Math.random()-.5)*4,Math.random()*2,1.6,juice>0);}}
   if(!jumpHeld&&frame-jumpFrame>6&&P.vy<JV*.55)P.vy=JV*.55;
 
   if(P.dash<=0){
@@ -2692,7 +2247,11 @@ function step(){
         P.y=pl.y-P.h;
         if(!wasG){
           const imp=Math.min(P.vy/MAXV,1);
-          landingFeedback(imp,pl.y);
+          P.sx=1+.36*imp;P.sy=1-.32*imp;
+          if(!calm())shake=7*imp;
+          if(imp>.5&&!calm())hstop=2+Math.round(imp*2);
+          sfx("land",imp);if(imp>.5)buzz(11);
+          for(let i=0;i<8;i++)spark(P.x+P.w/2,pl.y,(Math.random()-.5)*3.4,-Math.random()*1.9,1.6+Math.random()*2.6);
           combo++;comboT=frame;if(combo>comboMax)comboMax=combo;
           const off=Math.abs((P.x+P.w/2)-(pl.x+pl.w/2))/(pl.w/2);
           if(off<.3){
@@ -2738,38 +2297,8 @@ function step(){
         break;}}}
   if(P.grd)P.lg=frame;
   if(P.grd&&Math.abs(P.vx)>1.2&&frame%12===0)sfx("step");
-  /* ── visual state ──
-     A spring rather than a linear lerp: the body snaps back quickly then
-     eases, which is what makes squash read as elastic. The rebound past 1
-     on landing comes free from the spring overshooting. */
-  dashStep();
-  {
-    const k=FX.squashSpring, d=FX.squashDamp;
-    PV.sxv=(PV.sxv+(1-P.sx)*k)*d; P.sx+=PV.sxv;
-    PV.syv=(PV.syv+(1-P.sy)*k)*d; P.sy+=PV.syv;
-    /* Airborne shaping, driven by VERTICAL VELOCITY rather than a timer:
-       stretch while rising fast, neutral near the apex, slight compress
-       while falling. Applied as a bias on top of the spring so it never
-       fights an active squash pose. */
-    if(!P.grd&&PV.action!=="hurt"&&PV.action!=="land"){
-      const v=clamp(P.vy/MAXV,-1,1);
-      const air=1-Math.min(1,Math.abs(v)*1.15);   /* ~1 at the apex */
-      const stretch=v<0?(-v)*.16:v*.10;
-      P.sx+=((1-stretch*(v<0?1:-1)*.9)-P.sx)*.10*(1-air*.7);
-      P.sy+=((1+stretch*(v<0?1:-1))-P.sy)*.10*(1-air*.7);
-    }
-    if(PV.actionT>0){PV.actionT--;if(PV.actionT<=0)PV.action="none";}
-    if(PV.leanT>0){PV.leanT--;PV.lean*=.88;}else PV.lean*=.72;
-    if(PV.dashGlow>0)PV.dashGlow=Math.max(0,PV.dashGlow-1/(FX.dashRingMs*.06));
-    if(PV.landStrength>0)PV.landStrength=Math.max(0,PV.landStrength-.06);
-  }
-  /* A dash is a COMMITTED pose, not a tumble. Without this the airborne
-     rotation keeps accumulating off the dash's large vx (~0.05 rad/frame),
-     so by mid-dash the hero is at ~30-45 degrees and the afterimage trail
-     reads as a chain of rotating diamonds rather than ghosts of a
-     character. The lean supplies the tilt instead. */
-  if(P.dash>0)P.rot*=.72;
-  else P.rot=P.grd?P.rot*.7:clamp(P.rot+P.vx*.004+(P.air>34?P.face*.04:0),-.9,.9);
+  P.sx+=(1-P.sx)*.19;P.sy+=(1-P.sy)*.19;
+  P.rot=P.grd?P.rot*.7:clamp(P.rot+P.vx*.004+(P.air>34?P.face*.04:0),-.9,.9);
   if(iFr>0)iFr--;
   const cdec=has("combo")?325:130;   /* Combo Keeper: 2.5x slower decay */
   if(frame-comboT>cdec&&combo>0){combo=Math.max(0,combo-1);comboT=frame-(cdec-20);}
@@ -2912,15 +2441,7 @@ function step(){
   eventStep();
 
   /* ── camera / world ── */
-  /* Camera lead. During a dash the camera looks a little further ahead so
-     the player can see what they are dashing into; it eases in and back out
-     rather than snapping, and the extra amount is bounded so there is always
-     usable space behind the player. camX itself is otherwise untouched, so
-     boss positioning and procedural generation are unaffected. */
-  const wantLead=P.dash>0?FX.dashLead*P.face:0;
-  PV.camLead+=(wantLead-PV.camLead)*FX.dashLeadEase;
-  if(Math.abs(PV.camLead)<.15)PV.camLead=0;
-  const tgt=Math.max(0,P.x-W*.31+P.face*Math.min(90,W*.1)+PV.camLead);
+  const tgt=Math.max(0,P.x-W*.31+P.face*Math.min(90,W*.1));
   camX+=(tgt-camX)*.075;
   if(P.x<camX-30){P.x=camX-30;P.vx=Math.max(0,P.vx);}
   edgeX=gen(edgeX);
@@ -2961,24 +2482,15 @@ function step(){
   } else wx.length=0;
   for(const c of clouds){c.x-=.22*c.s;if(c.x<camX*.35-280)c.x=camX*.35+W+260;}
 
-  /* Ordinary running trail. EVERY field must be written, including dash:
-     these are pooled slots, so a slot previously used by a dash afterimage
-     keeps dash=1 and would go on rendering at dash strength — the running
-     trail would inherit the dash look permanently after the first dash. */
+  /* trail ring buffer */
   const tq=TRAIL[tIdx];tIdx=(tIdx+1)%TMAX;
   tq.x=P.x;tq.y=P.y;tq.rot=P.rot;tq.life=1;
-  tq.sx=P.sx;tq.sy=P.sy;tq.face=P.face;tq.dash=0;tq.juice=juice>0;
   for(let i=0;i<TMAX;i++){const t=TRAIL[i];if(t.life>0)t.life-=juice>0?.055:.09;}
 
   for(let i=0;i<RMAX;i++){const r=RINGS[i];if(r.life<=0)continue;r.r+=r.sp;r.life-=.045;}
 
   tutStep();
-  /* Shake decay. shakeT is an impulse countdown: while it runs the impulse
-     holds, then both axes decay together. Without it a dash held across
-     several frames would keep re-arming the shake and never settle. */
-  if(shakeT>0)shakeT--;
-  else {shake*=.86;shakeY*=.86;if(shakeY<.02)shakeY=0;}
-  flash*=.9;
+  shake*=.86;flash*=.9;
 }
 
 /* ══════ SHOCKWAVE RINGS (new polish primitive) ══════════════════ */
@@ -3336,11 +2848,7 @@ function EYE(c,x,y,r,op,pup){
 const glow=(g,x,y,sc)=>{if(!g)return;const r=g.width/2*(sc||1);ctx.drawImage(g,x-r,y-r,r*2,r*2);};
 
 function draw(){
-  /* Axis-weighted shake. shakeY only exceeds shake when an impulse asked
-     for it; otherwise both axes read the same value and behave exactly as
-     they did before. */
-  const sY=Math.max(shakeY,0)||shake;
-  const kx=shake?(Math.random()-.5)*shake:0,ky=sY?(Math.random()-.5)*sY:0;
+  const kx=shake?(Math.random()-.5)*shake:0,ky=shake?(Math.random()-.5)*shake:0;
   ctx.setTransform(DPR,0,0,DPR,kx*DPR,ky*DPR);
   const wl=worldAt(dist);
   lpc(cur.a,wl.A,.035);lpc(cur.b,wl.B,.035);lpc(cur.p,wl.P,.035);
@@ -3635,42 +3143,17 @@ function draw(){
     bakeRunner(kit);
     for(let i=0;i<TMAX;i++){
       const t=TRAIL[i];if(t.life<=.25)continue;
-      /* Dash afterimages are stronger and reproduce the POSE they were
-         captured in; the ordinary running trail stays very faint so it
-         reads as motion blur rather than a queue of clones. */
-      const a=t.dash?t.life*t.life*(t.juice?.62:.46):t.life*(juice>0?.4:.14);
-      const sc=t.dash?(.82+t.life*.18):1;      /* older = smaller */
-      ctx.save();ctx.globalAlpha=a;
+      ctx.save();ctx.globalAlpha=t.life*(juice>0?.4:.2);
       ctx.translate(t.x-camX+P.w/2,t.y+P.h/2);ctx.rotate(t.rot);
-      ctx.scale((t.sx||1)*sc*(t.face<0?-1:1),(t.sy||1)*sc);
       ctx.drawImage(RSPR,-11-P.w/2,-15-P.h/2,44,60);
       ctx.restore();}
     ctx.globalAlpha=1;}
 
-  /* ── particles ──
-     Three kinds share one pool: 0 square (original), 1 speed streak,
-     2 juice droplet. Streaks are stretched along their own velocity, which
-     is what makes the dash read as speed rather than confetti. */
+  /* ── particles ── */
   for(let i=0;i<PMAX;i++){const q=PART[i];if(q.life<=0)continue;
-    if(q.k===0){
-      ctx.globalAlpha=q.life*.75;
-      ctx.fillStyle=q.col||(q.gold?"#FFE9A0":"#A8B8D8");
-      ctx.fillRect(q.x-camX-q.r/2,q.y-q.r/2,q.r,q.r);
-    } else if(q.k===1){
-      ctx.globalAlpha=q.life*.8;
-      ctx.strokeStyle=q.col||"#A8B8D8";
-      ctx.lineWidth=q.wid;ctx.lineCap="round";
-      const L=q.len*q.life;
-      ctx.beginPath();
-      ctx.moveTo(q.x-camX,q.y);
-      ctx.lineTo(q.x-camX-Math.cos(q.ang)*L,q.y-Math.sin(q.ang)*L);
-      ctx.stroke();
-    } else {
-      ctx.globalAlpha=q.life*.85;
-      ctx.fillStyle=q.col||"#FFE9A0";
-      ctx.beginPath();ctx.arc(q.x-camX,q.y,q.wid*1.15,0,7);ctx.fill();
-    }}
-  ctx.lineCap="butt";ctx.globalAlpha=1;
+    ctx.globalAlpha=q.life*.75;ctx.fillStyle=q.gold?"#FFE9A0":"#A8B8D8";
+    ctx.fillRect(q.x-camX-q.r/2,q.y-q.r/2,q.r,q.r);}
+  ctx.globalAlpha=1;
 
   /* ── player ── */
   if(ST==="play"){
@@ -3688,37 +3171,10 @@ function draw(){
     const vis=iFr>0&&frame%8<4?.35:1;
     const kit=kitFor(me(),frame,juice>0);
     ctx.save();ctx.globalAlpha=vis;
-    /* Translating to (P.y + P.h - ph/2) keeps the FEET planted while the
-       body scales: squash grows the character downward-from-the-top rather
-       than around its centre, so a landing never looks like the character
-       teleported or sank into the platform. */
-    ctx.translate(P.x-camX+(P.w-pw)/2+pw/2,P.y+(P.h-ph)+bob+ph/2);
-    ctx.rotate(P.rot+PV.lean);
+    ctx.translate(P.x-camX+(P.w-pw)/2+pw/2,P.y+(P.h-ph)+bob+ph/2);ctx.rotate(P.rot);
     ctx.translate(-pw/2,-ph/2);
     me().draw(ctx,pw,ph,P.face,kit,frame);
     ctx.restore();
-    /* ── dash effect around the hero ──
-       A compressed arc on the leading edge plus a thin highlight, both
-       fading inside ~180ms. Deliberately small and off the face. */
-    if(PV.dashGlow>0&&!lite){
-      const g=PV.dashGlow, cx=P.x-camX+P.w/2, cy=P.y+P.h/2+bob;
-      const col=juice>0?juiceCol():me().hex, d=PV.dashDir;
-      ctx.save();
-      ctx.globalAlpha=g*.5;
-      ctx.strokeStyle=col;ctx.lineWidth=2+g*1.6;ctx.lineCap="round";
-      /* leading-edge arc, opening away from the direction of travel */
-      ctx.beginPath();
-      ctx.arc(cx,cy,P.w*(.85+(1-g)*.75),
-              (d>0?-.85:2.29),(d>0?.85:3.99));
-      ctx.stroke();
-      /* front highlight */
-      ctx.globalAlpha=g*.8;ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.moveTo(cx+d*P.w*.52,cy-P.h*.26);
-      ctx.lineTo(cx+d*P.w*.52,cy+P.h*.20);
-      ctx.stroke();
-      ctx.restore();ctx.lineCap="butt";ctx.globalAlpha=1;
-    }
     if(juice>0){                            /* orbiting aura */
       const cx=P.x-camX+P.w/2,cy=P.y+P.h/2+bob;
       ctx.strokeStyle=juiceCol();ctx.lineWidth=2;
@@ -4259,7 +3715,6 @@ function frameLoop(now){
   if(prof){profSim+=performance.now()-t0;t0=performance.now();}
 
   musicTick();
-  syncPadState();
   if(saver()&&(++skip&1)){if(prof){profSkip++;profN--;}return;}
   draw();
   if(prof){profDraw+=performance.now()-t0;profN--;}
@@ -4672,30 +4127,6 @@ if(/[?&]debug=1\b/.test(location.search)){
     resetLite(){autoLite=false;slowFrames=0;resize();},
     /* hide the on-canvas debug overlay but keep this hook alive */
     overlay(on){dbgDraw=!!on;return dbgDraw;},
-    /* ── game-feel surface ──
-       Exposes the visual state and the effect pools so the feel pass can be
-       tested for real rather than eyeballed: counts of live particles by
-       kind, live afterimages, and the pose priority machine. */
-    feel(){
-      let sq=0,st=0,dr=0,tr=0,trDash=0;
-      for(let i=0;i<PMAX;i++){const q=PART[i];if(q.life<=0)continue;
-        if(q.k===1)st++;else if(q.k===2)dr++;else sq++;}
-      for(let i=0;i<TMAX;i++){const t=TRAIL[i];if(t.life>0){tr++;if(t.dash)trDash++;}}
-      return{action:PV.action,actionT:PV.actionT,sx:P.sx,sy:P.sy,
-             lean:PV.lean,dashGlow:PV.dashGlow,landStrength:PV.landStrength,
-             camLead:PV.camLead,shake,shakeY,shakeT,hstop,
-             parts:{square:sq,streak:st,droplet:dr,total:sq+st+dr},
-             trail:tr,trailDash:trDash,
-             dash:P.dash,dashCd:P.dashCd,jumpsUsed:P.jumpsUsed,grd:P.grd,
-             calm:calm(),saver:saver()};},
-    setPose(a,f,sx,sy){return setPose(a,f,sx,sy);},
-    clearPose(){clearPose();return true;},
-    dash(){tryDash();return P.dash>0;},
-    jump(){tryJump();return true;},
-    /* land at a chosen impact fraction, to exercise each tier */
-    testLand(imp){landingFeedback(clamp(imp,0,1),P.y+P.h);return PV.action;},
-    fx:()=>FX,
-    schemeSaved:()=>schemeWasSaved,
     /* Screenshot mode. Store art has to show the GAME, not the things that
        only appear to a brand-new player: the first-run tutorial prompts,
        the audio toast and the rotate banner all sat in the first capture

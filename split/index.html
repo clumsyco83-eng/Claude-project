@@ -109,14 +109,51 @@
   <!-- Scheme B: optional on-screen controls. Hidden unless chosen in pause.
        Steering is a left pad; jump and dash are separate right-hand buttons
        so a dash can never be mistaken for a jump. -->
+  <!-- Control icons, defined once and referenced by <use>. Drawn as paths
+       rather than text glyphs so they render identically on every platform
+       (the old ◀ ▶ » ▲ characters are font-dependent and the double-angle
+       in particular is inconsistent between iOS and Android). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <g id="icoLeft"><path d="M15 4 L7 12 L15 20 Z"/></g>
+    <g id="icoRight"><path d="M9 4 L17 12 L9 20 Z"/></g>
+    <!-- dash: double chevron with speed lines, so the icon reads as
+         forward speed rather than "next" -->
+    <g id="icoDash">
+      <path d="M9 5 L16 12 L9 19 Z"/>
+      <path d="M15 5 L22 12 L15 19 Z" opacity=".62"/>
+      <rect x="1" y="7"  width="6" height="1.9" rx=".95" opacity=".75"/>
+      <rect x="0" y="11" width="8" height="1.9" rx=".95"/>
+      <rect x="2" y="15" width="5" height="1.9" rx=".95" opacity=".75"/>
+    </g>
+    <!-- jump: unambiguous upward arrow -->
+    <g id="icoJump">
+      <path d="M12 3 L20 12 L14.6 12 L14.6 21 L9.4 21 L9.4 12 L4 12 Z"/>
+    </g>
+  </defs></svg>
+
   <div id="pad">
     <div class="padside" id="padL">
-      <button class="pbtn" id="pLeft" aria-label="Move left">&#9664;</button>
-      <button class="pbtn" id="pRight" aria-label="Move right">&#9654;</button>
+      <button class="pbtn" id="pLeft" aria-label="Move left">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoLeft"/></svg>
+      </button>
+      <button class="pbtn" id="pRight" aria-label="Move right">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoRight"/></svg>
+      </button>
     </div>
     <div class="padside" id="padR">
-      <button class="pbtn dash" id="pDash" aria-label="Dash">&#187;</button>
-      <button class="pbtn jump" id="pJump" aria-label="Jump">&#9650;</button>
+      <!-- Dash carries its own radial cooldown, drawn as a conic-gradient
+           ring around the button so the player never has to look up at the
+           HUD mid-run. The HUD readout is kept as well. -->
+      <button class="pbtn dash" id="pDash" aria-label="Dash">
+        <i class="cdring" id="pDashRing"></i>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoDash"/></svg>
+      </button>
+      <!-- Jump stays the largest and most prominent control. The second
+           ring lights only while a double jump is actually available. -->
+      <button class="pbtn jump" id="pJump" aria-label="Jump">
+        <i class="dblring" id="pJumpDbl"></i>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icoJump"/></svg>
+      </button>
     </div>
   </div>
 
