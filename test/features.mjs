@@ -154,7 +154,44 @@ const nAch = await D(() => document.getElementById("achList").children.length);
 ok("Juice Journey has 15 awards", nAch === 15, nAch);
 ok("streak tracked on load", (await S()).save.streak >= 1, (await S()).save.streak);
 
-/* 6. menu personality */
+/* 6. per-world music — the score has to follow the world, and a boss has to
+   override it wherever the fight happens */
+const mus0 = (await S()).music;
+ok("every world has its own music theme", mus0.worlds.length === 7, mus0.worlds);
+/* distinct keys, not just distinct labels — two worlds sharing a root and a
+   tempo would be the same cue with a different name */
+ok("each world's theme is musically distinct",
+   new Set(mus0.table.map(t => t[1] + "@" + t[2])).size === 7, mus0.table);
+/* and the live wiring actually switches on arrival. The first boss is due at
+   350m, which is inside the second world, so it is held off here — otherwise
+   this measures the boss theme in six worlds out of seven. */
+const themes = [];
+for (const w of mus0.worlds) {
+  themes.push(await D(async wn => {
+    const d = window.JJA_DEBUG;
+    d.restart(); d.holdBoss(); d.setDist(d.worldStart(wn));
+    for (let i = 0; i < 40; i++) await new Promise(r => requestAnimationFrame(r));
+    return [wn, d.state.music.root, d.state.music.bpm, d.state.music.boss];
+  }, w));
+}
+ok("arriving in a world switches to its theme",
+   themes.every(([w, root, bpm]) => {
+     const want = mus0.table.find(t => t[0] === w);
+     return root === want[1] && bpm === want[2];
+   }), themes);
+ok("no world is left playing the boss theme",
+   themes.every(t => t[3] === false), themes);
+const bossMus = await D(async () => {
+  const d = window.JJA_DEBUG;
+  d.restart(); d.setWins(1); d.setDist(d.worldStart("ICE")); d.forceBoss();
+  for (let i = 0; i < 90 && !d.state.boss; i++) await new Promise(r => requestAnimationFrame(r));
+  return d.state.music;
+});
+ok("a boss overrides the world theme", bossMus.boss === true, bossMus);
+ok("the boss theme is faster than the world it interrupts",
+   bossMus.bpm > mus0.table.find(t => t[0] === "ICE")[2], bossMus.bpm);
+
+/* 7. menu personality */
 ok("menu says Juice Heroes", (await D(() => document.getElementById("bChars").textContent)).includes("Juice Heroes"));
 ok("menu says Juice Journey", (await D(() => document.getElementById("bAch").textContent)).includes("Juice Journey"));
 ok("menu has a Juice Lab", (await D(() => document.getElementById("bLab").textContent)).includes("Juice Lab"));

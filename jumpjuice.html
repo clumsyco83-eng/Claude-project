@@ -755,23 +755,61 @@ document.addEventListener("visibilitychange",()=>{
 addEventListener("blur",()=>{steer=0;prime=null;jumpHeld=false;kbd.l=kbd.r=false;});
 addEventListener("focus",()=>{resumeAudio();});
 
+/* ══════ MUSIC THEMES ═════════════════════════════════════════════
+   One theme per world plus a boss theme, so the score follows where you
+   are instead of only whether you are juiced. Every theme is the same
+   four-part texture (bass · kick · mid · lead) re-voiced, which is what
+   keeps the transition between two worlds a key change rather than a
+   different song starting mid-stride.
+
+     root  bass frequency — the key
+     sc    scale degrees in semitones — the mode, and the reason ICE and
+           SKY sound open (major pentatonic) while VOLCANO and STORM sound
+           tense (minor with a flat second)
+     bpm   tempo
+     mid   / lead   oscillator per voice
+     bass  the steps of a 16-step bar the bass plays — the groove
+     lv    lead level, trimmed per theme so a bright waveform in a high
+           register does not sit louder than the rest                    */
+const SC=[0,3,5,7,10,12];                     /* minor pentatonic, the default */
+const SC_MAJ=[0,2,4,7,9,12], SC_PHR=[0,1,5,7,8,12], SC_WHOLE=[0,2,4,6,8,10];
+const MUSIC={
+ FOREST:  {root:110.00,sc:SC,     bpm:124,mid:"square",  lead:"triangle",bass:[0,6,10],   lv:.050},
+ MOUNTAIN:{root:98.00, sc:SC,     bpm:118,mid:"sawtooth",lead:"triangle",bass:[0,4,10],   lv:.040},
+ ICE:     {root:123.47,sc:SC_MAJ, bpm:112,mid:"triangle",lead:"sine",    bass:[0,8],      lv:.055},
+ STORM:   {root:87.31, sc:SC_PHR, bpm:138,mid:"sawtooth",lead:"square",  bass:[0,3,6,10], lv:.036},
+ VOLCANO: {root:82.41, sc:SC,     bpm:144,mid:"square",  lead:"square",  bass:[0,2,6,8,12],lv:.034},
+ SKY:     {root:130.81,sc:SC_MAJ, bpm:126,mid:"triangle",lead:"sine",    bass:[0,6,10],   lv:.055},
+ SPACE:   {root:73.42, sc:SC_WHOLE,bpm:108,mid:"sine",   lead:"sine",    bass:[0,8],      lv:.050}};
+/* The boss theme overrides the world's — a fight should sound like a fight
+   wherever it happens. Fast, low and chromatic. */
+const MUSIC_BOSS={root:65.41,sc:[0,1,6,7,8,11],bpm:152,mid:"sawtooth",lead:"square",
+                  bass:[0,2,4,6,8,10,12,14],lv:.042};
+let curMus=MUSIC.FOREST;
+/* Called on world change, boss spawn and boss end. Cached rather than looked
+   up inside musicTick, which runs every rendered frame. */
+function setTheme(t){curMus=t||MUSIC.FOREST;}
+function themeNow(){return boss&&boss.st!=="dead"?MUSIC_BOSS:(MUSIC[worldAt(dist).n]||MUSIC.FOREST);}
+
 /* ── music: bounded scheduler, driven from the render loop ──
    Called once per rendered frame instead of setInterval, and it
    re-anchors if it has fallen behind, so a suspended tab can never
    trigger a thousand-note catch-up burst. */
-const SC=[0,3,5,7,10,12];
 function musicTick(){
   if(!sndOk()||!musicOn)return;
   const now=AC.currentTime;
   if(mnext<now-.25)mnext=now+.05;                     // fell behind: re-anchor
-  const spb=60/(juice>0?150:128)/4;
+  const M=curMus,S=M.sc;
+  /* Juice Mode still lifts the tempo, now relative to the world's own
+     rather than to one hard-coded 128. */
+  const spb=60/(M.bpm*(juice>0?1.17:1))/4;
   let guard=0;
   while(mnext<now+.14&&guard++<16){
     const s=mstep%16;
-    if(s===0||s===6||s===10)tn(mg[0],110,mnext,.5,"triangle",.24);
+    if(M.bass.indexOf(s)>=0)tn(mg[0],M.root,mnext,.5,"triangle",.24);
     if(s%4===0)kick(mnext);
-    if(s%2===0)tn(mg[2],220*Math.pow(2,SC[(mstep*3)%SC.length]/12),mnext,.15,"square",.085);
-    if(s%2===1)tn(mg[3],880*Math.pow(2,SC[(mstep*5)%SC.length]/12),mnext,.09,"triangle",.05);
+    if(s%2===0)tn(mg[2],M.root*2*Math.pow(2,S[(mstep*3)%S.length]/12),mnext,.15,M.mid,.085);
+    if(s%2===1)tn(mg[3],M.root*8*Math.pow(2,S[(mstep*5)%S.length]/12),mnext,.09,M.lead,M.lv);
     mnext+=spb;mstep++;
   }
 }
@@ -1918,6 +1956,9 @@ function start(){
   shake=0;hstop=0;flash=0;ST="play";paused=false;steer=0;prime=null;
   show(null);updateRot();
   $("pauseBtn").classList.add("show");syncSchemeUI();
+  /* Reset the score with the run — without this a restart during a boss
+     fight kept the boss theme playing over the opening forest. */
+  setTheme(themeNow());
   initAudio();layers(1);
 }
 /* One collision costs exactly one heart. iFr is set BEFORE anything else so
@@ -2048,6 +2089,7 @@ function step(){
   const wl=worldAt(dist),d=diff();
   const wi=Math.floor(dist/ZONE)%WORLDS.length;
   if(wi!==worldI){worldI=wi;layers(Math.min(1+Math.floor(dist/500),3));
+    setTheme(themeNow());                    /* the score follows the world */
     pop(P.x+P.w/2,P.y-34,wl.n,"#FFE9A0",15);}
 
   /* ── Juice Mode timer ──
@@ -2513,6 +2555,7 @@ function bossSpawn(){
         st:"warn",t:0,life:0,hurt:0,cool:80,phase:1,ty:P.y,volley:0,
         gift:null,drop:null,hits:0,spawned:0};
   sfx("siren");buzz([0,70,60,70]);bossSeen++;
+  setTheme(MUSIC_BOSS);                      /* a fight sounds like a fight */
   if(!calm())shake=6;
 }
 function bossHitBox(){return{w:64,h:44};}
@@ -2543,6 +2586,8 @@ function bossDamage(mult){
 }
 function bossDie(){
   boss.hp=0;boss.st="dead";boss.t=0;
+  setTheme(themeNow());                      /* the world's music comes back
+                                                under the victory fanfare */
   /* Was 600+250n, which made bosses 45-69% of a run's entire income and
      turned boss-farming into the only rational strategy. Now a strong bonus
      (~25%) on top of collecting, not a replacement for it. */
@@ -2574,12 +2619,12 @@ function bossStep(){
       ring(boss.x,boss.y,"#FFB870",6);if(!calm())shake=10;}
     if(boss.t===64){sfx("victory");flash=.8;}
     boss.y+=1.6;boss.x-=1.1;
-    if(boss.t>170){boss=null;nextBoss=dist+550;}
+    if(boss.t>170){boss=null;nextBoss=dist+550;setTheme(themeNow());}
     return;
   }
   if(boss.st==="retreat"){
     boss.y-=4.2;boss.x+=2.4;
-    if(boss.t>110){boss=null;nextBoss=dist+550;}
+    if(boss.t>110){boss=null;nextBoss=dist+550;setTheme(themeNow());}
     return;
   }
   /* hard despawn guard that actually works: `life` is never reset by a
@@ -3814,6 +3859,10 @@ if(/[?&]debug=1\b/.test(location.search)){
       boss:boss?{k:boss.k,st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
                  life:boss.life,hits:boss.hits,gift:boss.gift,drop:boss.drop,spawned:boss.spawned}:null,
       BREW,runFruit,bosses:Object.keys(BOSSES),bossWorlds:BOSS_OF_WORLD,
+      music:{bpm:curMus.bpm,root:curMus.root,boss:curMus===MUSIC_BOSS,
+             worlds:Object.keys(MUSIC),
+             table:Object.keys(MUSIC).map(w=>[w,MUSIC[w].root,MUSIC[w].bpm]),
+             bossTheme:[MUSIC_BOSS.root,MUSIC_BOSS.bpm]},
       brews:Object.keys(BREWS),fruits:Object.keys(FRUIT),
       abil:ABIL[activePass]?ABIL[activePass].short:"?",
       safeTop,WY,WH,
@@ -3857,6 +3906,17 @@ if(/[?&]debug=1\b/.test(location.search)){
              fruPer100:+(fru/metres*100).toFixed(3)};},
     extend(){return extendJuice(P.x,P.y);},
     sfx(k){sfx(k);return true;},          /* audio-cue smoke probe */
+    /* Music smoke probe: forces every theme through the real scheduler.
+       Each theme names its own oscillator types, and an invalid one throws
+       from createOscillator — which would otherwise only surface as silence
+       in one world for whoever happened to play that far. */
+    musicProbe(){
+      const was=curMus,threw=[];
+      const all=Object.keys(MUSIC).map(w=>[w,MUSIC[w]]).concat([["BOSS",MUSIC_BOSS]]);
+      for(const [n,t] of all){
+        try{setTheme(t);mnext=0;musicTick();}catch(e){threw.push(n+": "+e.message);}
+      }
+      setTheme(was);return threw;},
     sfxKeys(){return ["jump","dbl","dash","land","step","orb","cry","hurt","juice",
       "juiceEnd","juiceExt","juiceLast","bossWeak","bossFlee","stomp","bossHit",
       "explode","victory","siren","dead","click","ding","unlock","nope"];},
@@ -3911,6 +3971,10 @@ if(/[?&]debug=1\b/.test(location.search)){
     /* `state` is a read-only snapshot, so a test cannot reach bossWins by
        assigning to it. Needed to get past the scripted first fight. */
     setWins(n){bossWins=Math.max(0,n|0);},
+    /* Inverse of forceBoss: pushes the next encounter out of reach so a test
+       can travel the worlds without one spawning on the way (the first boss
+       is due at 350m, which is inside the second world). */
+    holdBoss(){boss=null;nextBoss=1e9;},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
     voidPlayer(){P.y=WH+200;},
     reachableBoss(){                     /* is the weak point inside jump range? */

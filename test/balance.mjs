@@ -334,6 +334,11 @@ const audio = await page3.evaluate(async () => {
   return { keys, threw, state: JJA_DEBUG.state.audio };
 });
 ok("every sound cue fires without throwing", audio.threw.length === 0, audio.threw);
+/* Each music theme names its own oscillator types. An invalid one throws from
+   createOscillator, which would otherwise surface only as silence in one
+   world, for whoever happened to play that far. */
+const musThrew = await page3.evaluate(() => JJA_DEBUG.musicProbe());
+ok("every music theme schedules without throwing", musThrew.length === 0, musThrew);
 ["juiceExt", "juiceLast", "bossWeak", "bossFlee"].forEach(k =>
   ok("new cue exists: " + k, audio.keys.includes(k)));
 const volPersist = await page3.evaluate(async () => {
