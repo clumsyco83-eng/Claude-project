@@ -467,6 +467,9 @@ let usedTouch=TOUCH&&!matchMedia("(pointer:fine)").matches;
    and it costs nothing (the draw call is behind this constant). */
 const DBG=/[?&]debug=1\b/.test(location.search);
 let dbgFps=60,dbgLast=0,dbgAcc=0,dbgN=0;
+/* Opt-in frame profiler. profN counts down the frames still being sampled;
+   at 0 the loop does no timing work at all. */
+let profN=0,profSim=0,profDraw=0,profSkip=0;
 
 /* ══════ OPTIONS ══════════════════════════════════════════════════
    Read from the DOM once per change, never inside the game loop.
@@ -3696,13 +3699,20 @@ function frameLoop(now){
   else timeScale+=(1-timeScale)*.12;
 
   acc+=dt*timeScale;
+  /* Phase timing is opt-in (profN>0, set only by the debug profile hook).
+     A shipped build never calls performance.now() here — measuring every
+     frame to answer a question nobody asked is its own perf bug. */
+  const prof=profN>0;
+  let t0=prof?performance.now():0;
   let n=0;
   while(acc>=1/60&&n++<5){step();acc-=1/60;}
   if(acc>1/6)acc=0;
+  if(prof){profSim+=performance.now()-t0;t0=performance.now();}
 
   musicTick();
-  if(saver()&&(++skip&1))return;
+  if(saver()&&(++skip&1)){if(prof){profSkip++;profN--;}return;}
   draw();
+  if(prof){profDraw+=performance.now()-t0;profN--;}
 }
 requestAnimationFrame(frameLoop);
 
@@ -3972,7 +3982,7 @@ if(/[?&]debug=1\b/.test(location.search)){
     get state(){return{
       ST,paused,frame,dist,camX,hp,hpMax,juice,juiceMax,meter,juiceThresh:juiceThresh(),
       orbs_,crys,combo,perfect,jumps,
-      elites,bossWins,RMOD,activePass,autoLite,timeScale,
+      elites,bossWins,RMOD,activePass,autoLite,timeScale,dpr:DPR,
       plats:plats.length,orbs:orbs.length,foes:foes.length,shots:shots.length,
       px:P.x,py:P.y,pvx:P.vx,pvy:P.vy,grd:P.grd,dashCd:P.dashCd,
       boss:boss?{k:boss.k,st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
@@ -4105,6 +4115,30 @@ if(/[?&]debug=1\b/.test(location.search)){
        trying to test in the first place). */
     show(id){show(id);return true;},
     pause(on){if(!!on!==paused)togglePause();return paused;},
+    /* Clears the adaptive downgrade so a measurement can start from full
+       quality. Without this, once auto-lite has engaged it is already
+       skipping draws and any later comparison measures the watchdog
+       instead of the thing under test. */
+    resetLite(){autoLite=false;slowFrames=0;resize();},
+    setOpt(k,v){const el=$({snd:"oSnd",vib:"oVib",calm:"oCalm",bat:"oBat",
+                            inv:"oInv",mod:"oMod"}[k]);
+                if(!el)return false;el.checked=!!v;
+                el.dispatchEvent(new Event("change",{bubbles:true}));return true;},
+    /* Samples the real loop for n frames and returns the per-phase cost in
+       milliseconds. Returns a promise so a caller gets the finished sample
+       rather than a snapshot of a measurement still in progress. */
+    profile(n){
+      profSim=profDraw=profSkip=0;profN=Math.max(1,n|0);
+      const want=profN;
+      return new Promise(res=>{
+        const wait=()=>{
+          if(profN>0)return requestAnimationFrame(wait);
+          const drawn=want-profSkip;
+          res({sim:profSim/want,draw:profDraw/Math.max(1,drawn),
+               skipped:profSkip,n:want});
+        };
+        requestAnimationFrame(wait);
+      });},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
     voidPlayer(){P.y=WH+200;},
     reachableBoss(){                     /* is the weak point inside jump range? */
