@@ -1,1 +1,10 @@
 node_modules/
+
+# Signing material must never be committed. A leaked or lost Android upload
+# key is unrecoverable — Play will not let you replace it.
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.cer
+local.properties

@@ -1,0 +1,12 @@
+{
+  "appId": "com.jumpjuice.adventure",
+  "appName": "Jump Juice",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0B1226",
+    "scrollEnabled": false
+  },
+  "server": { "iosScheme": "capacitor" }
+}

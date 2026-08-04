@@ -1,0 +1,39 @@
+{
+  "packageId": "com.jumpjuice.adventure",
+  "host": "example.com",
+  "name": "Jump Juice Adventure",
+  "launcherName": "Jump Juice",
+  "display": "standalone",
+  "themeColor": "#0B1226",
+  "themeColorDark": "#0B1226",
+  "navigationColor": "#0B1226",
+  "navigationColorDark": "#0B1226",
+  "navigationDividerColor": "#0B1226",
+  "navigationDividerColorDark": "#0B1226",
+  "backgroundColor": "#0B1226",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://example.com/icons/icon-512.png",
+  "maskableIconUrl": "https://example.com/icons/maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./jumpjuice.keystore",
+    "alias": "jumpjuice"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://example.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://example.com/",
+  "minSdkVersion": 21,
+  "orientation": "default"
+}

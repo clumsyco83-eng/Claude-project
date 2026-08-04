@@ -17,6 +17,12 @@ GENERATED (never edit — rebuilt by the commands below)
   dist/pwa/ ..................... from: node test/build-pwa.mjs
                                   THE DEPLOYABLE BUILD — installable, offline
   dist/hosted-sim.html .......... hosting simulation harness
+  dist/store/ ................... from: node test/build-store.mjs
+                                  store icons, feature graphic, screenshots
+  dist/android/ ................. from: node test/build-native.mjs
+                                  TWA project + signed AAB + assetlinks
+  dist/ios/ ..................... from: node test/build-native.mjs
+                                  Xcode project (build needs a Mac)
   split/README.md ............... EXCEPTION - hand-maintained
 
 DOCUMENTATION
@@ -26,6 +32,7 @@ DOCUMENTATION
   HANDOFF.md .................... systems overview + gotchas
   AUDIT.md ...................... 40-system checklist
   PRIVACY.md .................... privacy policy (the game collects nothing)
+  RELEASE-CHECKLIST.md .......... run before packaging a submission
   STORE.md ...................... store listing copy + asset locations
   MANIFEST.txt .................. this file
 
@@ -33,11 +40,16 @@ TESTS AND BUILD SCRIPTS
   test/split.mjs ................ build: jumpjuice.html -> split/
   test/build-artifact.mjs ....... build: -> dist/jumpjuice-artifact.html
   test/build-pwa.mjs ............ build: -> dist/pwa/  (installable)
+  test/build-store.mjs .......... build: -> dist/store/ (store assets)
+  test/build-native.mjs ......... build: -> dist/android/ + dist/ios/
   test/smoke.mjs ................ 60 assertions x 5 device profiles
   test/features.mjs ............. 48 — heroes, bosses, music, Lab, awards
   test/hostile.mjs .............. 19 crippled-browser boot cases
   test/balance.mjs .............. 83 — the balance/systems contract
-  test/pwa.mjs .................. 25 — manifest, SW, icons, REAL offline play
+  test/pwa.mjs .................. 26 — manifest, SW, icons, REAL offline play
+  test/buttons.mjs .............. 26 — every control, x3 device profiles
+  test/perf.mjs ................. 11 — mobile JS frame cost
+  test/release-check.mjs ........ 44 — the gate before packaging
   test/genvalidate.mjs .......... 10k + 10k procedural fairness sweep
   test/economy.mjs .............. coins/min + time-to-unlock simulation
   test/soak.mjs ................. long-run memory/stability soak
@@ -62,9 +74,12 @@ TEST ENVIRONMENT REQUIRED
   test/pwa.mjs additionally needs dist/pwa/ built first.
 
 STATUS
-  Feature-complete and ship-ready. 275 assertions across 8 suites, all green
-  on both the single file and the split build.
+  Store-submission ready. 407 assertions across 11 suites, all green on both
+  the single file and the split build. v1.0.0 (versionCode 1).
   Seven worlds, each with its own boss and its own music.
   Installable PWA; offline play is asserted by killing the server mid-session.
   NOT verified on real iPhone/Android hardware — emulation only. The install
-  flow has never been through a real home-screen install.
+  flow has never been through a real home-screen install, the AAB has never
+  been installed on a device, and the Xcode project has never been compiled
+  (that needs a Mac). Four submission blockers remain — see
+  RELEASE-CHECKLIST.md section 0.

@@ -19,6 +19,14 @@ canvas{display:block;touch-action:none}
     opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease}
 .ov.show{opacity:1;visibility:visible;pointer-events:auto}
 .big{font-size:clamp(24px,6.5vh,44px);font-weight:700;margin:0;letter-spacing:-.02em;text-align:center}
+/* Links inside overlays. min-height rather than padding alone: the .lil type
+   these sit in is clamp()-sized, so 11px of padding measured 37px total on a
+   phone — under the 44px minimum both stores audit for. Stating the height
+   directly means it cannot drift with the font size. */
+.ov a{color:var(--amber);text-decoration:underline;text-underline-offset:3px;
+      display:inline-flex;align-items:center;justify-content:center;
+      min-height:44px;min-width:44px;padding:0 8px}
+.ov a:active{opacity:.6}
 .lil{font-family:var(--mono);font-size:clamp(9px,1.6vh,11px);letter-spacing:.13em;text-transform:uppercase;
      color:var(--haze);margin:0;text-align:center}
 .amb{color:var(--amber)}
@@ -255,6 +263,15 @@ canvas{display:block;touch-action:none}
       <button class="btn p" id="bResume">Resume</button>
       <button class="btn" id="bQuit">End run</button>
     </div>
+    <!-- Store requirement: a privacy policy and a support contact must be
+         reachable from inside the app, not only from the store listing.
+         Both open in a new tab; rel=noopener so the opened page cannot
+         reach back into the game via window.opener. -->
+    <p class="lil" id="aboutRow" style="opacity:.75;margin-top:6px">
+      <span id="verTxt"></span> &middot;
+      <a id="lnkPrivacy" href="#" target="_blank" rel="noopener noreferrer">Privacy</a> &middot;
+      <a id="lnkSupport" href="#" target="_blank" rel="noopener noreferrer">Support</a>
+    </p>
   </div>
 
   <!-- Scheme B: optional on-screen controls. Hidden unless chosen in pause.
@@ -445,7 +462,15 @@ let usedTouch=TOUCH&&!matchMedia("(pointer:fine)").matches;
    ?debug=1 query flag as the test hook, so a shipped build never shows it
    and it costs nothing (the draw call is behind this constant). */
 const DBG=/[?&]debug=1\b/.test(location.search);
+/* The on-canvas debug overlay can be switched off while KEEPING the debug
+   hook, so screenshot tooling can pose a scene through JJA_DEBUG and still
+   capture a clean frame. Without this the overlay is baked into every
+   store screenshot. */
+let dbgDraw=true;
 let dbgFps=60,dbgLast=0,dbgAcc=0,dbgN=0;
+/* Opt-in frame profiler. profN counts down the frames still being sampled;
+   at 0 the loop does no timing work at all. */
+let profN=0,profSim=0,profDraw=0,profSkip=0;
 
 /* ══════ OPTIONS ══════════════════════════════════════════════════
    Read from the DOM once per change, never inside the game loop.
@@ -575,6 +600,23 @@ const SAVE={best:0,coins:0,xp:0,unlocked:[DEF_SEL],sel:DEF_SEL,msDate:"",msProg:
             fruit:{straw:0,mango:0,lemon:0,kiwi:0},brew:"",
             streak:0,lastDay:"",maxCombo:0,opt:{...OPT_DEF}};
 const KEY="jja2";
+/* ══════ RELEASE IDENTITY ═════════════════════════════════════════
+   Single source of truth. The PWA manifest, the Android versionName and
+   the iOS CFBundleShortVersionString are all stamped from VERSION by the
+   build scripts, so a release cannot ship three different numbers.
+   VERSION_CODE is the integer Play requires; it must increase on every
+   upload and never repeat, so bump it even for a re-upload of the same
+   VERSION.
+
+   SUPPORT_EMAIL and PRIVACY_URL are PLACEHOLDERS. Both stores reject a
+   listing whose support contact or privacy policy does not resolve, so
+   these must be replaced with real, live values before submission —
+   test/release-check.mjs fails the build while they are still set to the
+   example values below. */
+const VERSION="1.0.0";
+const VERSION_CODE=1;
+const SUPPORT_EMAIL="support@example.com";        /* PLACEHOLDER — replace */
+const PRIVACY_URL="https://example.com/privacy";  /* PLACEHOLDER — replace */
 const LVXP=lv=>250+lv*180;
 function level(){let lv=1,x=Math.max(0,SAVE.xp|0),n=0;
   while(x>=LVXP(lv)&&n++<400){x-=LVXP(lv);lv++;}
@@ -3163,7 +3205,7 @@ function draw(){
   if(flash>.01&&!calm()){ctx.fillStyle="rgba(255,233,160,"+(flash*.4)+")";ctx.fillRect(-20,-20,W+40,H+40);}
 
   if(ST==="play")drawHUD();
-  if(DBG)drawDebug();
+  if(DBG&&dbgDraw)drawDebug();
 }
 let vigKey="",vig=null;
 
@@ -3658,13 +3700,20 @@ function frameLoop(now){
   else timeScale+=(1-timeScale)*.12;
 
   acc+=dt*timeScale;
+  /* Phase timing is opt-in (profN>0, set only by the debug profile hook).
+     A shipped build never calls performance.now() here — measuring every
+     frame to answer a question nobody asked is its own perf bug. */
+  const prof=profN>0;
+  let t0=prof?performance.now():0;
   let n=0;
   while(acc>=1/60&&n++<5){step();acc-=1/60;}
   if(acc>1/6)acc=0;
+  if(prof){profSim+=performance.now()-t0;t0=performance.now();}
 
   musicTick();
-  if(saver()&&(++skip&1))return;
+  if(saver()&&(++skip&1)){if(prof){profSkip++;profN--;}return;}
   draw();
+  if(prof){profDraw+=performance.now()-t0;profN--;}
 }
 requestAnimationFrame(frameLoop);
 
@@ -3837,6 +3886,21 @@ $("bFull").onclick=async()=>{
 $("oVol").oninput=()=>{syncOpts();setVol(OPT.vol);};
 $("oVol").onchange=()=>{sfx("click");};
 
+/* ══════ ABOUT: version, privacy, support ═════════════════════════
+   Both stores require the privacy policy and a support contact to be
+   reachable from inside the app, not only from the listing. The version
+   is shown alongside them because it is the first thing a support mail
+   needs and the last thing a player can find. */
+{
+  const v=$("verTxt"),p=$("lnkPrivacy"),s=$("lnkSupport");
+  if(v)v.textContent="v"+VERSION;
+  if(p)p.href=PRIVACY_URL;
+  /* Prefilled subject and version: a support mail that does not say which
+     build it came from costs a round trip every time. */
+  if(s)s.href="mailto:"+SUPPORT_EMAIL+
+      "?subject="+encodeURIComponent("Jump Juice Adventure v"+VERSION+" — support");
+}
+
 /* ══════ INSTALL ══════════════════════════════════════════════════
    Installing is the real fix for the iOS problem: Quick Look never runs
    scripts and iOS Safari cannot open a local file:// page at all, so on
@@ -3919,11 +3983,17 @@ if(/[?&]debug=1\b/.test(location.search)){
     get state(){return{
       ST,paused,frame,dist,camX,hp,hpMax,juice,juiceMax,meter,juiceThresh:juiceThresh(),
       orbs_,crys,combo,perfect,jumps,
-      elites,bossWins,RMOD,activePass,autoLite,timeScale,
+      elites,bossWins,RMOD,activePass,autoLite,timeScale,dpr:DPR,
       plats:plats.length,orbs:orbs.length,foes:foes.length,shots:shots.length,
       px:P.x,py:P.y,pvx:P.vx,pvy:P.vy,grd:P.grd,dashCd:P.dashCd,
       boss:boss?{k:boss.k,st:boss.st,hp:boss.hp,max:boss.max,phase:boss.phase,x:boss.x,y:boss.y,
                  life:boss.life,hits:boss.hits,gift:boss.gift,drop:boss.drop,spawned:boss.spawned}:null,
+      /* held input — the on-screen pad's entire observable effect, so a
+         test can tell a working pad button from a dead one. Each pad
+         button drives a different one of these. */
+      steerRaw:steer,jumpHeld,dashArm:dashChg,padL,padR,dashT:P.dash,
+      version:VERSION,versionCode:VERSION_CODE,
+      supportEmail:SUPPORT_EMAIL,privacyUrl:PRIVACY_URL,
       BREW,runFruit,bosses:Object.keys(BOSSES),bossWorlds:BOSS_OF_WORLD,
       music:{bpm:curMus.bpm,root:curMus.root,boss:curMus===MUSIC_BOSS,
              worlds:Object.keys(MUSIC),
@@ -4041,6 +4111,50 @@ if(/[?&]debug=1\b/.test(location.search)){
        can travel the worlds without one spawning on the way (the first boss
        is due at 350m, which is inside the second world). */
     holdBoss(){boss=null;nextBoss=1e9;},
+    /* UI navigation, so a test can reach a control on any screen without
+       simulating the click path that leads there (which is what it is
+       trying to test in the first place). */
+    show(id){show(id);return true;},
+    pause(on){if(!!on!==paused)togglePause();return paused;},
+    /* Clears the adaptive downgrade so a measurement can start from full
+       quality. Without this, once auto-lite has engaged it is already
+       skipping draws and any later comparison measures the watchdog
+       instead of the thing under test. */
+    resetLite(){autoLite=false;slowFrames=0;resize();},
+    /* hide the on-canvas debug overlay but keep this hook alive */
+    overlay(on){dbgDraw=!!on;return dbgDraw;},
+    /* Screenshot mode. Store art has to show the GAME, not the things that
+       only appear to a brand-new player: the first-run tutorial prompts,
+       the audio toast and the rotate banner all sat in the first capture
+       pass. Marks the tutorial seen, clears any transient message, and
+       drops the debug overlay. */
+    capture(){
+      dbgDraw=false;
+      SAVE.tut=1;save();
+      tutI=TUT.length;
+      const s=$("snack");if(s)s.classList.remove("show");
+      clearTimeout(snackT);
+      const r=$("rot");if(r)r.classList.remove("show");
+      return true;},
+    setOpt(k,v){const el=$({snd:"oSnd",vib:"oVib",calm:"oCalm",bat:"oBat",
+                            inv:"oInv",mod:"oMod"}[k]);
+                if(!el)return false;el.checked=!!v;
+                el.dispatchEvent(new Event("change",{bubbles:true}));return true;},
+    /* Samples the real loop for n frames and returns the per-phase cost in
+       milliseconds. Returns a promise so a caller gets the finished sample
+       rather than a snapshot of a measurement still in progress. */
+    profile(n){
+      profSim=profDraw=profSkip=0;profN=Math.max(1,n|0);
+      const want=profN;
+      return new Promise(res=>{
+        const wait=()=>{
+          if(profN>0)return requestAnimationFrame(wait);
+          const drawn=want-profSkip;
+          res({sim:profSim/want,draw:profDraw/Math.max(1,drawn),
+               skipped:profSkip,n:want});
+        };
+        requestAnimationFrame(wait);
+      });},
     hitBoss(){if(boss&&boss.st!=="dead"&&boss.st!=="warn"){boss.hurt=0;bossDamage(1);}},
     voidPlayer(){P.y=WH+200;},
     reachableBoss(){                     /* is the weak point inside jump range? */
